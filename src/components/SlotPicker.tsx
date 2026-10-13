@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { addDays, computeSlots, todayIn, weekday, zonedToUtc, type Hours, type Slot } from '../lib/slots'
+import { CalendarIcon, ClockIcon } from './Icons'
 
 export type Cfg = {
   timezone: string
@@ -22,52 +23,78 @@ type Props = {
   durationMin: number
   cfg: Cfg
   reload?: number
+  excludeStartsAt?: string | null
   onPick: (s: Slot | null) => void
 }
 
-export default function SlotPicker({ bizId, durationMin, cfg, reload = 0, onPick }: Props) {
+export default function SlotPicker({
+  bizId,
+  durationMin,
+  cfg,
+  reload = 0,
+  excludeStartsAt = null,
+  onPick,
+}: Props) {
   const days = useMemo(() => {
     const t = todayIn(cfg.timezone)
     return Array.from({ length: 14 }, (_, i) => addDays(t, i)).filter(
-      d => cfg.opening_hours[String(weekday(d))]
+      d => (cfg.opening_hours[String(weekday(d))] ?? []).length > 0
     )
   }, [cfg])
 
   const [date, setDate] = useState(days[0] ?? '')
   const [slots, setSlots] = useState<Slot[] | null>(null)
   const [sel, setSel] = useState<number | null>(null)
+  const [loadError, setLoadError] = useState(false)
+
+  // Atualiza a data caso os dias mudem (por ex: carregamento assíncrono de configurações)
+  useEffect(() => {
+    if (!date && days.length > 0) {
+      setDate(days[0])
+    }
+  }, [days, date])
 
   useEffect(() => {
     if (!date) return
     setSlots(null)
     setSel(null)
+    setLoadError(false)
     onPick(null)
+
     const from = zonedToUtc(date, '00:00', cfg.timezone)
+    // Janela ampla (-4h a +30h) para garantir cobertura completa de fusos e bloqueios
     supabase
       .rpc('get_busy_slots', {
         p_business: bizId,
-        p_from: new Date(from).toISOString(),
-        p_to: new Date(from + 26 * 3600000).toISOString(),
+        p_from: new Date(from - 4 * 3600000).toISOString(),
+        p_to: new Date(from + 30 * 3600000).toISOString(),
       })
-      .then(({ data }) =>
-        setSlots(
-          computeSlots({
-            date,
-            tz: cfg.timezone,
-            hours: cfg.opening_hours,
-            durationMin,
-            stepMin: cfg.slot_step_min,
-            busy: data ?? [],
-          })
-        )
-      )
+      .then(({ data, error }) => {
+        if (error) {
+          setLoadError(true)
+          setSlots([])
+          return
+        }
+        const computed = computeSlots({
+          date,
+          tz: cfg.timezone,
+          hours: cfg.opening_hours,
+          durationMin,
+          stepMin: cfg.slot_step_min,
+          busy: data ?? [],
+          excludeStartsAt,
+        })
+        setSlots(computed)
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, reload, bizId, cfg, durationMin])
+  }, [date, reload, bizId, cfg, durationMin, excludeStartsAt])
 
   if (days.length === 0) {
     return (
       <div className="card empty" style={{ padding: '1.5rem' }}>
-        <p style={{ margin: 0 }}>Sem horários de funcionamento configurados neste negócio.</p>
+        <p style={{ margin: 0, color: 'var(--muted)' }}>
+          Sem horários de funcionamento configurados neste negócio.
+        </p>
       </div>
     )
   }
@@ -76,9 +103,13 @@ export default function SlotPicker({ bizId, durationMin, cfg, reload = 0, onPick
     <div style={{ display: 'grid', gap: '1.25rem', margin: '1rem 0' }}>
       {/* 1. Date Selector Cards */}
       <div>
-        <label style={{ fontSize: '.84rem', fontWeight: 700, marginBottom: '.5rem', display: 'block' }}>
-          1. Escolha a data
-        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', marginBottom: '.55rem' }}>
+          <CalendarIcon size={16} style={{ color: 'var(--primary)' }} />
+          <span style={{ fontSize: '.84rem', fontWeight: 700 }}>
+            1. Selecione o dia
+          </span>
+        </div>
+
         <div
           style={{
             display: 'flex',
@@ -88,7 +119,7 @@ export default function SlotPicker({ bizId, durationMin, cfg, reload = 0, onPick
             scrollbarWidth: 'thin',
           }}
           role="group"
-          aria-label="Escolha o dia"
+          aria-label="Escolha a data do atendimento"
         >
           {days.map(d => {
             const { week, day } = dayLabel(d)
@@ -103,8 +134,8 @@ export default function SlotPicker({ bizId, durationMin, cfg, reload = 0, onPick
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  minWidth: '68px',
-                  padding: '.55rem .4rem',
+                  minWidth: '66px',
+                  padding: '.55rem .35rem',
                   borderRadius: 'var(--r-sm)',
                   border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--line)',
                   background: isSelected ? 'var(--primary-lt)' : 'var(--card)',
@@ -115,7 +146,7 @@ export default function SlotPicker({ bizId, durationMin, cfg, reload = 0, onPick
                   flexShrink: 0,
                 }}
               >
-                <span style={{ fontSize: '.72rem', textTransform: 'uppercase', opacity: isSelected ? 1 : 0.7 }}>
+                <span style={{ fontSize: '.7rem', textTransform: 'uppercase', opacity: isSelected ? 1 : 0.7 }}>
                   {week}
                 </span>
                 <span style={{ fontSize: '.95rem', fontWeight: 700, marginTop: '.15rem' }}>
@@ -129,29 +160,41 @@ export default function SlotPicker({ bizId, durationMin, cfg, reload = 0, onPick
 
       {/* 2. Time Slots Grid */}
       <div>
-        <label style={{ fontSize: '.84rem', fontWeight: 700, marginBottom: '.5rem', display: 'block' }}>
-          2. Escolha o horário de início
-        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', marginBottom: '.55rem' }}>
+          <ClockIcon size={16} style={{ color: 'var(--primary)' }} />
+          <span style={{ fontSize: '.84rem', fontWeight: 700 }}>
+            2. Selecione o horário de início
+          </span>
+        </div>
+
         {slots === null ? (
           <div className="center" style={{ padding: '1.5rem' }}>
             <div className="spinner" />
-            <small style={{ display: 'block', marginTop: '.5rem' }}>Verificando horários disponíveis...</small>
+            <small style={{ display: 'block', marginTop: '.5rem', color: 'var(--muted)' }}>
+              Verificando disponibilidade de horários...
+            </small>
+          </div>
+        ) : loadError ? (
+          <div className="card center" style={{ padding: '1.25rem' }}>
+            <p style={{ margin: 0, fontSize: '.88rem', color: 'var(--err)' }}>
+              Não foi possível consultar a agenda no momento. Tente novamente em instantes.
+            </p>
           </div>
         ) : slots.length === 0 ? (
           <div className="card center" style={{ padding: '1.25rem' }}>
-            <p style={{ margin: 0, fontSize: '.9rem', color: 'var(--muted)' }}>
-              Todos os horários estão ocupados para esta data. Tente outro dia!
+            <p style={{ margin: 0, fontSize: '.88rem', color: 'var(--muted)' }}>
+              Nenhum horário livre restante nesta data. Por favor, selecione outro dia acima.
             </p>
           </div>
         ) : (
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(78px, 1fr))',
               gap: '.45rem',
             }}
             role="group"
-            aria-label="Horários disponíveis"
+            aria-label="Horários livres"
           >
             {slots.map(s => {
               const isSelected = sel === s.startMs

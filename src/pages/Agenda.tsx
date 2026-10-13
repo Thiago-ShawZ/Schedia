@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { brl } from '../lib/format'
 import { todayIn, zonedToUtc } from '../lib/slots'
 import { STATUS_LABELS } from './MeusAgendamentos'
+import { CalendarIcon, ClockIcon, CheckIcon } from '../components/Icons'
 
 type Row = {
   id: string
@@ -171,13 +172,17 @@ export default function Agenda() {
       {rows === null ? (
         <div className="center">
           <div className="spinner" />
-          <p style={{ marginTop: '.75rem' }}>Carregando agenda...</p>
+          <p style={{ marginTop: '.75rem', fontSize: '.88rem' }}>Carregando agenda...</p>
         </div>
       ) : rows.length === 0 ? (
         <div className="card empty">
-          <span className="empty-icon">🗓️</span>
+          <div style={{ display: 'inline-flex', padding: '1rem', background: 'var(--bg-sub)', borderRadius: '50%', color: 'var(--muted)', marginBottom: '.75rem' }}>
+            <CalendarIcon size={32} />
+          </div>
           <h2>Nenhum agendamento neste período</h2>
-          <p>Quando os clientes reservarem horários na sua página pública, eles aparecerão aqui.</p>
+          <p style={{ fontSize: '.88rem' }}>
+            Quando os clientes agendarem horários na sua página pública, eles aparecerão aqui.
+          </p>
         </div>
       ) : (
         [...grupos].map(([d, lista]) => (
@@ -206,13 +211,17 @@ export default function Agenda() {
                         <span
                           style={{
                             fontWeight: 800,
-                            fontSize: '1.05rem',
+                            fontSize: '.95rem',
                             color: 'var(--primary)',
                             background: 'var(--primary-lt)',
-                            padding: '.15rem .5rem',
+                            padding: '.2rem .55rem',
                             borderRadius: 'var(--r-sm)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '.25rem',
                           }}
                         >
+                          <ClockIcon size={13} />
                           {hora(r.starts_at)}
                         </span>
                         <strong style={{ fontSize: '1rem' }}>{r.client_name || 'Cliente'}</strong>
@@ -220,13 +229,13 @@ export default function Agenda() {
                       </div>
 
                       <div style={{ display: 'flex', gap: '.65rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '.84rem', color: 'var(--muted)' }}>
-                        <span>✂️ {r.service_name}</span>
+                        <span>{r.service_name}</span>
                         <span>·</span>
                         <span style={{ fontWeight: 600, color: 'var(--fg)' }}>{brl(r.price_cents)}</span>
                         {r.client_phone && (
                           <>
                             <span>·</span>
-                            <span>📞 {r.client_phone}</span>
+                            <span>Tel: {r.client_phone}</span>
                           </>
                         )}
                       </div>
@@ -241,7 +250,8 @@ export default function Agenda() {
                               style={{ background: 'var(--ok)' }}
                               onClick={() => mudar(r, 'completed')}
                             >
-                              ✓ Concluir
+                              <CheckIcon size={14} style={{ marginRight: '.25rem' }} />
+                              Concluir
                             </button>
                             <button
                               className="btn ghost sm"

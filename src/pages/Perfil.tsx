@@ -1,12 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
+import ImageUploader from '../components/ImageUploader'
 
 export default function Perfil() {
   const { session } = useAuth()
   const uid = session?.user.id ?? ''
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
   const [pwd, setPwd] = useState('')
   const [msg, setMsg] = useState('')
   const [msg2, setMsg2] = useState('')
@@ -17,13 +19,14 @@ export default function Perfil() {
     if (uid) {
       supabase
         .from('profiles')
-        .select('full_name,phone')
+        .select('full_name,phone,avatar_url')
         .eq('id', uid)
         .single()
         .then(({ data }) => {
           if (data) {
             setName(data.full_name)
             setPhone(data.phone ?? '')
+            setAvatarUrl(data.avatar_url ?? '')
           }
         })
     }
@@ -33,12 +36,31 @@ export default function Perfil() {
     e.preventDefault()
     setBusy(true)
     setMsg('')
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: name.trim(), phone: phone.trim() || null })
-      .eq('id', uid)
+
+    // Atualiza tabela profiles e metadados de autenticação
+    const [pRes, aRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .update({
+          full_name: name.trim(),
+          phone: phone.trim() || null,
+          avatar_url: avatarUrl.trim() || null,
+        })
+        .eq('id', uid),
+      supabase.auth.updateUser({
+        data: {
+          full_name: name.trim(),
+          avatar_url: avatarUrl.trim() || null,
+        },
+      }),
+    ])
+
     setBusy(false)
-    setMsg(error ? 'Não foi possível salvar os dados.' : 'Dados atualizados com sucesso! ✅')
+    if (pRes.error && aRes.error) {
+      setMsg('Não foi possível salvar os dados do perfil.')
+    } else {
+      setMsg('Dados do perfil salvos com sucesso.')
+    }
   }
 
   async function trocar(e: FormEvent) {
@@ -50,7 +72,7 @@ export default function Perfil() {
     setMsg2(
       error
         ? 'Não foi possível alterar a senha (mínimo de 8 caracteres).'
-        : 'Senha alterada com sucesso! ✅'
+        : 'Senha alterada com sucesso.'
     )
     if (!error) setPwd('')
   }
@@ -59,8 +81,12 @@ export default function Perfil() {
     <main className="narrow">
       {/* User Header Profile Card */}
       <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <div className="avatar" style={{ width: '56px', height: '56px', fontSize: '1.4rem' }}>
-          {(name || session?.user.email || 'U').charAt(0).toUpperCase()}
+        <div className="avatar" style={{ width: '58px', height: '58px', fontSize: '1.3rem' }}>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Avatar" className="avatar-img" />
+          ) : (
+            (name || session?.user.email || 'U').charAt(0).toUpperCase()
+          )}
         </div>
         <div>
           <h1 style={{ fontSize: '1.25rem', margin: 0 }}>{name || 'Meu Perfil'}</h1>
@@ -71,11 +97,19 @@ export default function Perfil() {
       {/* Personal Info Form */}
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
         <h2 style={{ marginTop: 0, fontSize: '1.15rem' }}>Dados pessoais</h2>
-        <p style={{ color: 'var(--muted)', fontSize: '.85rem', marginBottom: '1rem' }}>
-          Mantenha seus dados atualizados para que os estabelecimentos possam entrar em contato.
+        <p style={{ color: 'var(--muted)', fontSize: '.84rem', marginBottom: '1rem' }}>
+          Mantenha seus dados e sua foto atualizados para contato com os estabelecimentos.
         </p>
 
         <form className="form" onSubmit={salvar} style={{ margin: 0 }}>
+          <ImageUploader
+            value={avatarUrl}
+            fallbackText={name || 'U'}
+            onChange={setAvatarUrl}
+            label="Foto de perfil"
+            size={76}
+          />
+
           <label>
             E-mail cadastrado
             <input value={session?.user.email ?? ''} disabled style={{ opacity: 0.65 }} />
@@ -116,9 +150,9 @@ export default function Perfil() {
             </p>
           )}
 
-          <div className="actions" style={{ marginTop: '.5rem' }}>
+          <div className="actions" style={{ marginTop: '.75rem' }}>
             <button className="btn" disabled={busy}>
-              {busy ? 'Salvando...' : 'Salvar alterações'}
+              {busy ? 'Salvando...' : 'Salvar dados do perfil'}
             </button>
           </div>
         </form>
@@ -126,9 +160,9 @@ export default function Perfil() {
 
       {/* Security Form */}
       <div className="card" style={{ padding: '1.5rem' }}>
-        <h2 style={{ marginTop: 0, fontSize: '1.15rem' }}>Segurança & Senha</h2>
-        <p style={{ color: 'var(--muted)', fontSize: '.85rem', marginBottom: '1rem' }}>
-          Defina uma nova senha para acessar sua conta.
+        <h2 style={{ marginTop: 0, fontSize: '1.15rem' }}>Segurança & Acesso</h2>
+        <p style={{ color: 'var(--muted)', fontSize: '.84rem', marginBottom: '1rem' }}>
+          Defina uma nova senha para acessar sua conta com segurança.
         </p>
 
         <form className="form" onSubmit={trocar} style={{ margin: 0 }}>
@@ -160,7 +194,7 @@ export default function Perfil() {
             </p>
           )}
 
-          <div className="actions" style={{ marginTop: '.5rem' }}>
+          <div className="actions" style={{ marginTop: '.75rem' }}>
             <button className="btn ghost" disabled={busy2}>
               {busy2 ? 'Atualizando...' : 'Atualizar senha'}
             </button>

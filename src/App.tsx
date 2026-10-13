@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, RequireAuth, useAuth } from './auth/AuthContext'
 import { supabase } from './lib/supabase'
@@ -16,17 +16,43 @@ import Bloqueios from './pages/Bloqueios'
 import MeusAgendamentos from './pages/MeusAgendamentos'
 import Perfil from './pages/Perfil'
 import RedefinirSenha from './pages/RedefinirSenha'
+import {
+  BrandLogoMark,
+  SearchIcon,
+  CalendarIcon,
+  BuildingIcon,
+  UserIcon,
+  LogOutIcon,
+} from './components/Icons'
 
 function Header() {
   const { session } = useAuth()
   const [open, setOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const close = () => setOpen(false)
+
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setAvatarUrl(null)
+      return
+    }
+    // Tenta carregar avatar_url do perfil
+    supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', session.user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.avatar_url) setAvatarUrl(data.avatar_url)
+      })
+  }, [session])
 
   return (
     <>
       <header className="top">
         <Link to="/" className="brand" onClick={close}>
-          <span style={{ fontSize: '1.25rem' }}>📅</span> Schedia
+          <BrandLogoMark size={28} />
+          <span>Schedia</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -36,21 +62,28 @@ function Header() {
               <NavLink to="/hub">Descobrir</NavLink>
               <NavLink to="/agendamentos">Agendamentos</NavLink>
               <NavLink to="/painel">Meus Negócios</NavLink>
-              <NavLink to="/perfil">Perfil</NavLink>
+              <NavLink to="/perfil" style={{ display: 'inline-flex', alignItems: 'center', gap: '.4rem' }}>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Perfil"
+                    style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                ) : null}
+                <span>Perfil</span>
+              </NavLink>
               <button
                 className="btn ghost sm"
-                style={{ marginLeft: '.5rem', padding: '.3rem .75rem' }}
+                style={{ marginLeft: '.5rem', padding: '.32rem .75rem' }}
                 onClick={() => supabase.auth.signOut()}
               >
                 Sair
               </button>
             </>
           ) : (
-            <>
-              <Link to="/entrar" className="btn sm">
-                Entrar
-              </Link>
-            </>
+            <Link to="/entrar" className="btn sm">
+              Entrar
+            </Link>
           )}
         </nav>
 
@@ -60,7 +93,7 @@ function Header() {
           aria-label={open ? 'Fechar menu' : 'Abrir menu'}
           onClick={() => setOpen(!open)}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             {open ? (
               <path d="M18 6L6 18M6 6l12 12" />
             ) : (
@@ -75,8 +108,9 @@ function Header() {
         <div className="mobile-overlay" onClick={close} />
         <div className="mobile-menu">
           <div className="mobile-menu-header">
-            <span className="brand" style={{ fontSize: '1.1rem' }}>
-              <span>📅</span> Schedia
+            <span className="brand" style={{ fontSize: '1.05rem' }}>
+              <BrandLogoMark size={24} />
+              <span>Schedia</span>
             </span>
             <button className="icon-btn" onClick={close} aria-label="Fechar">
               ✕
@@ -86,16 +120,20 @@ function Header() {
           {session ? (
             <>
               <NavLink to="/hub" onClick={close}>
-                🔍 Descobrir Negócios
+                <SearchIcon size={17} style={{ color: 'var(--muted)' }} />
+                <span>Descobrir Negócios</span>
               </NavLink>
               <NavLink to="/agendamentos" onClick={close}>
-                🗓️ Meus Agendamentos
+                <CalendarIcon size={17} style={{ color: 'var(--muted)' }} />
+                <span>Meus Agendamentos</span>
               </NavLink>
               <NavLink to="/painel" onClick={close}>
-                💼 Gestão / Meus Negócios
+                <BuildingIcon size={17} style={{ color: 'var(--muted)' }} />
+                <span>Gestão / Negócios</span>
               </NavLink>
               <NavLink to="/perfil" onClick={close}>
-                👤 Meu Perfil
+                <UserIcon size={17} style={{ color: 'var(--muted)' }} />
+                <span>Meu Perfil</span>
               </NavLink>
               <div className="divider" style={{ margin: '.5rem 0' }} />
               <button
@@ -105,7 +143,8 @@ function Header() {
                   supabase.auth.signOut()
                 }}
               >
-                🚪 Sair da conta
+                <LogOutIcon size={17} style={{ color: 'var(--muted)' }} />
+                <span>Sair da conta</span>
               </button>
             </>
           ) : (

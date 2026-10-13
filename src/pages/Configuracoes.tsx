@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import ImageUploader from '../components/ImageUploader'
 
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 type Dia = { on: boolean; start: string; end: string }
@@ -20,6 +21,7 @@ export default function Configuracoes() {
     description: '',
     city: '',
     category_id: '',
+    logo_url: '',
     is_published: false,
   })
   const [cfg, setCfg] = useState({ slot_step_min: 30, min_cancel_hours: 24 })
@@ -42,6 +44,7 @@ export default function Configuracoes() {
           description: b.data.description ?? '',
           city: b.data.city ?? '',
           category_id: b.data.category_id ? String(b.data.category_id) : '',
+          logo_url: b.data.logo_url ?? '',
           is_published: b.data.is_published,
         })
       }
@@ -84,6 +87,7 @@ export default function Configuracoes() {
           description: biz.description.trim() || null,
           city: biz.city.trim() || null,
           category_id: biz.category_id ? Number(biz.category_id) : null,
+          logo_url: biz.logo_url.trim() || null,
         })
         .eq('id', id),
       supabase
@@ -92,7 +96,7 @@ export default function Configuracoes() {
         .eq('business_id', id),
     ])
     setBusy(false)
-    setMsg(a.error?.message ?? b.error?.message ?? 'Configurações salvas com sucesso! ✅')
+    setMsg(a.error?.message ?? b.error?.message ?? 'Configurações salvas com sucesso.')
   }
 
   async function publicar() {
@@ -102,7 +106,7 @@ export default function Configuracoes() {
     setBusy(false)
     if (error) return setMsg(ERROS[error.message] ?? error.message)
     setBiz({ ...biz, is_published: next })
-    setMsg(next ? 'Negócio publicado no Hub com sucesso! 🎉' : 'Negócio despublicado do Hub.')
+    setMsg(next ? 'Negócio publicado no Hub com sucesso.' : 'Negócio despublicado do Hub.')
   }
 
   return (
@@ -111,12 +115,12 @@ export default function Configuracoes() {
         <div>
           <h1 style={{ fontSize: '1.4rem', margin: 0 }}>Configurações do Negócio</h1>
           <p style={{ color: 'var(--muted)', fontSize: '.88rem', margin: '.2rem 0 0' }}>
-            Atualize dados cadastrais, horários de funcionamento e regras de agendamento.
+            Atualize dados cadastrais, logotipo, horários e regras de agendamento.
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem' }}>
           <span className={`badge ${biz.is_published ? 'badge-ok' : 'badge-muted'}`}>
-            {biz.is_published ? '● Publicado no Hub' : '○ Rascunho / Oculto'}
+            {biz.is_published ? 'Publicado no Hub' : 'Rascunho / Oculto'}
           </span>
           <button
             type="button"
@@ -130,16 +134,25 @@ export default function Configuracoes() {
       </div>
 
       <form className="form" onSubmit={salvar}>
-        {/* Section 1: Business Details */}
+        {/* Section 1: Business Details & Logo */}
         <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <h2 style={{ marginTop: 0, fontSize: '1.15rem' }}>Dados do estabelecimento</h2>
+          <h2 style={{ marginTop: 0, fontSize: '1.15rem' }}>Identidade e Dados</h2>
+
+          <ImageUploader
+            value={biz.logo_url}
+            fallbackText={biz.name || 'B'}
+            onChange={url => setBiz({ ...biz, logo_url: url })}
+            label="Logotipo do negócio"
+            size={76}
+          />
+
           <label>
-            Nome do negócio
+            Nome do estabelecimento
             <input
               required
               value={biz.name}
               onChange={e => setBiz({ ...biz, name: e.target.value })}
-              placeholder="Ex.: Studio Beleza & Estética"
+              placeholder="Ex.: Studio Lumina"
             />
           </label>
           <label>
@@ -176,7 +189,7 @@ export default function Configuracoes() {
               rows={3}
               value={biz.description}
               onChange={e => setBiz({ ...biz, description: e.target.value })}
-              placeholder="Conte aos clientes sobre seus diferenciais, estrutura e atendimento..."
+              placeholder="Apresente sua proposta de valor e diferenciais aos clientes..."
             />
           </label>
         </div>
@@ -184,8 +197,8 @@ export default function Configuracoes() {
         {/* Section 2: Operating Hours */}
         <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
           <h2 style={{ marginTop: 0, fontSize: '1.15rem' }}>Horário de funcionamento</h2>
-          <p style={{ color: 'var(--muted)', fontSize: '.85rem', marginBottom: '1.25rem' }}>
-            Marque os dias em que o estabelecimento atende e defina o intervalo de atendimento.
+          <p style={{ color: 'var(--muted)', fontSize: '.84rem', marginBottom: '1.25rem' }}>
+            Marque os dias de atendimento e configure os horários de início e término.
           </p>
 
           {DIAS.map((nome, i) => (
@@ -199,21 +212,21 @@ export default function Configuracoes() {
                 {nome}
               </label>
               {dias[i].on ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
                   <input
                     type="time"
                     aria-label={`${nome}: abertura`}
                     value={dias[i].start}
                     onChange={e => setDia(i, { start: e.target.value })}
-                    style={{ width: '110px' }}
+                    style={{ width: '115px' }}
                   />
-                  <span style={{ color: 'var(--muted)', fontSize: '.85rem' }}>às</span>
+                  <span style={{ color: 'var(--muted)', fontSize: '.84rem' }}>às</span>
                   <input
                     type="time"
                     aria-label={`${nome}: fechamento`}
                     value={dias[i].end}
                     onChange={e => setDia(i, { end: e.target.value })}
-                    style={{ width: '110px' }}
+                    style={{ width: '115px' }}
                   />
                 </div>
               ) : (
@@ -266,7 +279,7 @@ export default function Configuracoes() {
 
         <div className="actions">
           <button className="btn" disabled={busy}>
-            {busy ? 'Salvando...' : 'Salvar todas as alterações'}
+            {busy ? 'Salvando...' : 'Salvar configurações'}
           </button>
         </div>
       </form>

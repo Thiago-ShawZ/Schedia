@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { brl, toCents } from '../lib/format'
+import { ClockIcon } from '../components/Icons'
 
 type Item = {
   id: string
@@ -89,7 +90,7 @@ export default function CatalogoCrud({ table }: { table: 'services' | 'products'
         <p style={{ color: 'var(--muted)', fontSize: '.88rem', margin: '.2rem 0 0' }}>
           {isSvc
             ? 'Cadastre os serviços que seus clientes podem agendar online.'
-            : 'Cadastre os itens e produtos físicos comercializados no seu espaço.'}
+            : 'Cadastre os itens e produtos físicos comercializados no seu estabelecimento.'}
         </p>
       </div>
 
@@ -200,14 +201,18 @@ export default function CatalogoCrud({ table }: { table: 'services' | 'products'
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.25rem' }}>
                 <span className={`badge ${it.is_active ? 'badge-ok' : 'badge-muted'}`}>
-                  {it.is_active ? '● Ativo' : 'Inativo'}
+                  {it.is_active ? 'Ativo' : 'Inativo'}
                 </span>
                 <strong style={{ fontSize: '1rem' }}>{it.name}</strong>
               </div>
-              <small style={{ color: 'var(--muted)' }}>
+              <small style={{ color: 'var(--muted)', display: 'inline-flex', alignItems: 'center', gap: '.3rem' }}>
                 {it.description ? `${it.description} · ` : ''}
                 <strong style={{ color: 'var(--fg)' }}>{brl(it.price_cents)}</strong>
-                {it.duration_min ? ` · ⏱️ ${it.duration_min} min` : ''}
+                {it.duration_min ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '.25rem' }}>
+                    · <ClockIcon size={12} /> {it.duration_min} min
+                  </span>
+                ) : null}
               </small>
             </div>
 

@@ -3,12 +3,14 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { brl } from '../lib/format'
 import Reserva, { type Cfg } from '../components/Reserva'
+import { LocationIcon, ClockIcon, BuildingIcon } from '../components/Icons'
 
 type Biz = {
   id: string
   name: string
   description: string | null
   city: string | null
+  logo_url?: string | null
   categories: { name: string } | null
 }
 type Item = {
@@ -38,7 +40,7 @@ export default function Negocio() {
     ;(async () => {
       const { data: b } = await supabase
         .from('businesses')
-        .select('id,name,description,city,categories(name)')
+        .select('id,name,description,city,logo_url,categories(name)')
         .eq('slug', slug)
         .eq('is_published', true)
         .maybeSingle()
@@ -74,7 +76,7 @@ export default function Negocio() {
     return (
       <div className="center" style={{ paddingTop: '4rem' }}>
         <div className="spinner" />
-        <p style={{ marginTop: '.75rem' }}>Carregando perfil do estabelecimento...</p>
+        <p style={{ marginTop: '.75rem', fontSize: '.88rem' }}>Carregando dados do estabelecimento...</p>
       </div>
     )
   }
@@ -82,9 +84,11 @@ export default function Negocio() {
   if (state === 'none' || !biz) {
     return (
       <main className="narrow" style={{ textAlign: 'center', paddingTop: '4rem' }}>
-        <span style={{ fontSize: '3rem' }}>🏪</span>
-        <h1 style={{ marginTop: '.5rem' }}>Negócio não encontrado</h1>
-        <p style={{ color: 'var(--muted)' }}>
+        <div style={{ display: 'inline-flex', padding: '1rem', background: 'var(--bg-sub)', borderRadius: '50%', color: 'var(--muted)', marginBottom: '.75rem' }}>
+          <BuildingIcon size={36} />
+        </div>
+        <h1 style={{ marginTop: '.5rem', fontSize: '1.35rem' }}>Negócio não encontrado</h1>
+        <p style={{ color: 'var(--muted)', fontSize: '.88rem' }}>
           Este estabelecimento não existe ou não está publicado no momento.
         </p>
         <Link className="btn" to="/hub" style={{ marginTop: '1rem' }}>
@@ -99,8 +103,12 @@ export default function Negocio() {
       {/* Business Header Profile Card */}
       <div className="card" style={{ marginBottom: '1.75rem', padding: '1.75rem 1.5rem' }}>
         <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div className="avatar" style={{ width: '64px', height: '64px', fontSize: '1.75rem' }}>
-            {biz.name.charAt(0).toUpperCase()}
+          <div className="avatar" style={{ width: '68px', height: '68px', fontSize: '1.75rem' }}>
+            {biz.logo_url ? (
+              <img src={biz.logo_url} alt={biz.name} className="avatar-img" />
+            ) : (
+              biz.name.charAt(0).toUpperCase()
+            )}
           </div>
           <div style={{ flex: 1, minWidth: '220px' }}>
             <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.35rem' }}>
@@ -108,14 +116,15 @@ export default function Negocio() {
                 {biz.categories?.name ?? 'Estabelecimento'}
               </span>
               {biz.city && (
-                <span className="badge badge-muted">
-                  📍 {biz.city}
+                <span className="badge badge-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '.3rem' }}>
+                  <LocationIcon size={12} />
+                  {biz.city}
                 </span>
               )}
             </div>
-            <h1 style={{ margin: '0 0 .5rem', fontSize: '1.6rem' }}>{biz.name}</h1>
+            <h1 style={{ margin: '0 0 .5rem', fontSize: '1.55rem' }}>{biz.name}</h1>
             {biz.description && (
-              <p style={{ color: 'var(--muted)', fontSize: '.92rem', margin: 0, lineHeight: 1.55 }}>
+              <p style={{ color: 'var(--muted)', fontSize: '.9rem', margin: 0, lineHeight: 1.55 }}>
                 {biz.description}
               </p>
             )}
@@ -152,12 +161,15 @@ export default function Negocio() {
                 <div style={{ flex: 1 }}>
                   <strong style={{ fontSize: '1.05rem' }}>{s.name}</strong>
                   {s.description && (
-                    <p style={{ color: 'var(--muted)', fontSize: '.85rem', margin: '.2rem 0' }}>
+                    <p style={{ color: 'var(--muted)', fontSize: '.84rem', margin: '.2rem 0' }}>
                       {s.description}
                     </p>
                   )}
                   <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center', marginTop: '.35rem', flexWrap: 'wrap' }}>
-                    <span className="badge badge-muted">⏱️ {s.duration_min} min</span>
+                    <span className="badge badge-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '.3rem' }}>
+                      <ClockIcon size={12} />
+                      {s.duration_min} min
+                    </span>
                     <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '.95rem' }}>
                       {brl(s.price_cents)}
                     </span>
@@ -185,7 +197,7 @@ export default function Negocio() {
                     <div style={{ flex: 1 }}>
                       <strong style={{ fontSize: '1rem' }}>{p.name}</strong>
                       {p.description && (
-                        <p style={{ color: 'var(--muted)', fontSize: '.85rem', margin: '.2rem 0' }}>
+                        <p style={{ color: 'var(--muted)', fontSize: '.84rem', margin: '.2rem 0' }}>
                           {p.description}
                         </p>
                       )}
@@ -194,7 +206,7 @@ export default function Negocio() {
                       </div>
                     </div>
                     <span className="badge badge-muted" style={{ fontSize: '.75rem' }}>
-                      Disponível no balcão
+                      Venda no local
                     </span>
                   </li>
                 ))}

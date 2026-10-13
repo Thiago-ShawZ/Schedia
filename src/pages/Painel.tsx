@@ -1,11 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import {
+  CalendarIcon,
+  ScissorsIcon,
+  ShoppingBagIcon,
+  BanIcon,
+  SettingsIcon,
+  ExternalLinkIcon,
+  BuildingIcon,
+  ArrowLeftIcon,
+  LocationIcon,
+} from '../components/Icons'
 
 type M = {
   business_id: string
   role: string
-  businesses: { name: string; slug: string; city: string | null } | null
+  businesses: { name: string; slug: string; city: string | null; logo_url?: string | null } | null
 }
 
 export function PainelSeletor() {
@@ -15,7 +26,7 @@ export function PainelSeletor() {
   useEffect(() => {
     supabase
       .from('business_memberships')
-      .select('business_id,role,businesses(name,slug,city)')
+      .select('business_id,role,businesses(name,slug,city,logo_url)')
       .eq('status', 'active')
       .then(({ data }) => {
         setItems((data as unknown as M[]) ?? [])
@@ -29,26 +40,30 @@ export function PainelSeletor() {
         <div>
           <h1 style={{ margin: 0 }}>Painel de Gestão</h1>
           <p style={{ color: 'var(--muted)', fontSize: '.9rem', margin: '.25rem 0 0' }}>
-            Gerencie seus estabelecimentos, serviços, produtos e agenda.
+            Gerencie seus estabelecimentos, equipe, catálogo e agenda.
           </p>
         </div>
         <Link className="btn" to="/painel/novo">
-          + Criar novo negócio
+          + Cadastrar negócio
         </Link>
       </div>
 
       {loading ? (
         <div className="center">
           <div className="spinner" />
-          <p style={{ marginTop: '.75rem' }}>Carregando seus estabelecimentos...</p>
+          <p style={{ marginTop: '.75rem', fontSize: '.88rem' }}>Carregando estabelecimentos...</p>
         </div>
       ) : items.length === 0 ? (
         <div className="card empty">
-          <span className="empty-icon">🏪</span>
+          <div style={{ display: 'inline-flex', padding: '1rem', background: 'var(--bg-sub)', borderRadius: '50%', color: 'var(--muted)', marginBottom: '.75rem' }}>
+            <BuildingIcon size={32} />
+          </div>
           <h2>Você ainda não gerencia nenhum negócio</h2>
-          <p>Crie seu primeiro estabelecimento para começar a receber agendamentos de clientes.</p>
-          <Link className="btn" to="/painel/novo" style={{ marginTop: '1rem' }}>
-            Cadastrar meu negócio agora
+          <p style={{ maxWidth: '420px', margin: '.25rem auto 1rem' }}>
+            Crie seu primeiro estabelecimento para disponibilizar serviços e receber agendamentos.
+          </p>
+          <Link className="btn" to="/painel/novo">
+            Cadastrar meu negócio
           </Link>
         </div>
       ) : (
@@ -66,16 +81,27 @@ export function PainelSeletor() {
                     {m.role === 'owner' ? 'Proprietário' : m.role}
                   </span>
                   {m.businesses?.city && (
-                    <small style={{ color: 'var(--muted)' }}>📍 {m.businesses.city}</small>
+                    <small style={{ color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '.25rem', fontSize: '.78rem' }}>
+                      <LocationIcon size={12} />
+                      {m.businesses.city}
+                    </small>
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '.85rem', alignItems: 'center' }}>
-                  <div className="avatar" style={{ width: '40px', height: '40px', fontSize: '1rem' }}>
-                    {m.businesses?.name?.charAt(0) ?? 'B'}
+                  <div className="avatar" style={{ width: '42px', height: '42px', fontSize: '1rem' }}>
+                    {m.businesses?.logo_url ? (
+                      <img src={m.businesses.logo_url} alt={m.businesses.name} className="avatar-img" />
+                    ) : (
+                      m.businesses?.name?.charAt(0) ?? 'B'
+                    )}
                   </div>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{m.businesses?.name}</h2>
-                    <small style={{ color: 'var(--muted)' }}>schedia.app/n/{m.businesses?.slug}</small>
+                  <div style={{ minWidth: 0 }}>
+                    <h2 style={{ margin: 0, fontSize: '1.05rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {m.businesses?.name}
+                    </h2>
+                    <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
+                      schedia.app/n/{m.businesses?.slug}
+                    </small>
                   </div>
                 </div>
               </div>
@@ -94,22 +120,22 @@ export function PainelSeletor() {
 }
 
 const navItems = [
-  { path: 'agenda', label: 'Agenda', icon: '🗓️' },
-  { path: 'servicos', label: 'Serviços', icon: '✂️' },
-  { path: 'produtos', label: 'Produtos', icon: '🛍️' },
-  { path: 'bloqueios', label: 'Bloqueios', icon: '⛔' },
-  { path: 'configuracoes', label: 'Configurações', icon: '⚙️' },
+  { path: 'agenda', label: 'Agenda', Icon: CalendarIcon },
+  { path: 'servicos', label: 'Serviços', Icon: ScissorsIcon },
+  { path: 'produtos', label: 'Produtos', Icon: ShoppingBagIcon },
+  { path: 'bloqueios', label: 'Bloqueios', Icon: BanIcon },
+  { path: 'configuracoes', label: 'Configurações', Icon: SettingsIcon },
 ]
 
 export function PainelLayout() {
   const { id } = useParams()
-  const [biz, setBiz] = useState<{ name: string; slug: string } | null>(null)
+  const [biz, setBiz] = useState<{ name: string; slug: string; logo_url?: string | null } | null>(null)
   const [found, setFound] = useState<boolean | null>(null)
 
   useEffect(() => {
     supabase
       .from('businesses')
-      .select('name,slug')
+      .select('name,slug,logo_url')
       .eq('id', id)
       .single()
       .then(({ data }) => {
@@ -125,9 +151,13 @@ export function PainelLayout() {
   if (found === false) {
     return (
       <main className="narrow" style={{ textAlign: 'center', paddingTop: '3rem' }}>
-        <span style={{ fontSize: '3rem' }}>⚠️</span>
+        <div style={{ display: 'inline-flex', padding: '1rem', background: 'var(--bg-sub)', borderRadius: '50%', color: 'var(--muted)', marginBottom: '.75rem' }}>
+          <BuildingIcon size={36} />
+        </div>
         <h1>Negócio não encontrado</h1>
-        <p style={{ color: 'var(--muted)' }}>Ele não existe ou você não tem permissão para acessá-lo.</p>
+        <p style={{ color: 'var(--muted)', fontSize: '.88rem' }}>
+          Ele não existe ou você não tem permissão para acessá-lo.
+        </p>
         <Link className="btn" to="/painel" style={{ marginTop: '1rem' }}>
           Voltar aos meus negócios
         </Link>
@@ -139,15 +169,21 @@ export function PainelLayout() {
     <div className="panel-wrap">
       {/* Mobile Horizontal Navigation Tabs */}
       <nav className="panel-mobile-nav" aria-label="Seções do painel">
-        {navItems.map(item => (
-          <NavLink key={item.path} to={item.path}>
-            <span style={{ marginRight: '.3rem' }}>{item.icon}</span>
-            {item.label}
+        {navItems.map(({ path, label, Icon }) => (
+          <NavLink key={path} to={path} style={{ display: 'inline-flex', alignItems: 'center', gap: '.4rem' }}>
+            <Icon size={14} />
+            <span>{label}</span>
           </NavLink>
         ))}
         {biz?.slug && (
-          <a href={`/n/${biz.slug}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>
-            👁️ Ver página pública
+          <a
+            href={`/n/${biz.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: '.3rem' }}
+          >
+            <span>Página pública</span>
+            <ExternalLinkIcon size={13} />
           </a>
         )}
       </nav>
@@ -157,17 +193,22 @@ export function PainelLayout() {
         <aside className="sidebar">
           <div className="sidebar-header">
             <Link to="/painel" className="sidebar-back">
-              ← Meus Negócios
+              <ArrowLeftIcon size={13} />
+              <span>Meus Negócios</span>
             </Link>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginTop: '.35rem' }}>
-              <div className="avatar" style={{ width: '36px', height: '36px', fontSize: '.9rem' }}>
-                {biz?.name?.charAt(0) ?? 'N'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem', marginTop: '.35rem' }}>
+              <div className="avatar" style={{ width: '38px', height: '38px', fontSize: '.95rem' }}>
+                {biz?.logo_url ? (
+                  <img src={biz.logo_url} alt={biz.name} className="avatar-img" />
+                ) : (
+                  biz?.name?.charAt(0) ?? 'N'
+                )}
               </div>
               <div style={{ minWidth: 0 }}>
                 <div className="sidebar-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {biz?.name || 'Carregando...'}
                 </div>
-                <small style={{ fontSize: '.72rem', color: 'var(--muted)' }}>Painel Administrativo</small>
+                <small style={{ fontSize: '.72rem', color: 'var(--muted)' }}>Painel de Gestão</small>
               </div>
             </div>
             {biz?.slug && (
@@ -185,16 +226,17 @@ export function PainelLayout() {
                   fontWeight: 600,
                 }}
               >
-                👁️ Ver página pública ↗
+                <span>Ver página pública</span>
+                <ExternalLinkIcon size={12} />
               </a>
             )}
           </div>
 
           <nav className="sidebar-nav" aria-label="Navegação administrativa">
-            {navItems.map(item => (
-              <NavLink key={item.path} to={item.path}>
-                <span style={{ fontSize: '1rem' }}>{item.icon}</span>
-                <span>{item.label}</span>
+            {navItems.map(({ path, label, Icon }) => (
+              <NavLink key={path} to={path}>
+                <Icon size={16} />
+                <span>{label}</span>
               </NavLink>
             ))}
           </nav>

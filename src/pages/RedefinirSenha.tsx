@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
+import { AlertCircleIcon } from '../components/Icons'
 
 export default function RedefinirSenha() {
   const { session, loading } = useAuth()
@@ -14,7 +15,7 @@ export default function RedefinirSenha() {
     return (
       <div className="center" style={{ paddingTop: '4rem' }}>
         <div className="spinner" />
-        <p style={{ marginTop: '.75rem' }}>Verificando link de acesso...</p>
+        <p style={{ marginTop: '.75rem', fontSize: '.88rem' }}>Verificando link de acesso...</p>
       </div>
     )
   }
@@ -23,7 +24,9 @@ export default function RedefinirSenha() {
     return (
       <main className="narrow" style={{ textAlign: 'center', paddingTop: '3rem' }}>
         <div className="card" style={{ padding: '2rem' }}>
-          <span style={{ fontSize: '2.5rem' }}>⚠️</span>
+          <div style={{ display: 'inline-flex', padding: '1rem', background: 'var(--err-lt)', color: 'var(--err)', borderRadius: '50%', marginBottom: '.75rem' }}>
+            <AlertCircleIcon size={32} />
+          </div>
           <h1 style={{ fontSize: '1.3rem', margin: '.5rem 0' }}>Link inválido ou expirado</h1>
           <p style={{ color: 'var(--muted)', fontSize: '.88rem' }}>
             Este link de redefinição de senha já foi utilizado ou perdeu a validade.

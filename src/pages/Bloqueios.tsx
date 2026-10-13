@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { todayIn, zonedToUtc } from '../lib/slots'
+import { BanIcon } from '../components/Icons'
 
 type Blk = {
   id: string
@@ -75,8 +76,8 @@ export default function Bloqueios() {
 
     setMsg(
       n
-        ? `⚠️ Bloqueio registrado! Atenção: há ${n} agendamento(s) confirmado(s) nesse intervalo. Verifique na Agenda.`
-        : 'Horário bloqueado com sucesso! ✅'
+        ? `Atenção: há ${n} agendamento(s) confirmado(s) neste intervalo. Cancele ou reagende na Agenda caso necessário.`
+        : 'Horário bloqueado com sucesso.'
     )
     setF({ ...f, reason: '' })
     load()
@@ -99,7 +100,7 @@ export default function Bloqueios() {
       <div style={{ marginBottom: '1.25rem' }}>
         <h1 style={{ fontSize: '1.4rem', margin: 0 }}>Bloqueios de Horário</h1>
         <p style={{ color: 'var(--muted)', fontSize: '.88rem', margin: '.2rem 0 0' }}>
-          Interdite períodos para almoço, folgas, compromissos ou manutenção.
+          Interdite horários para almoço, folgas, compromissos ou manutenção da agenda.
         </p>
       </div>
 
@@ -140,7 +141,7 @@ export default function Bloqueios() {
             <input
               value={f.reason}
               onChange={e => setF({ ...f, reason: e.target.value })}
-              placeholder="Ex.: Almoço, consulta médica, folga..."
+              placeholder="Ex.: Intervalo de almoço, folga, consulta médica..."
             />
           </label>
 
@@ -191,7 +192,10 @@ export default function Bloqueios() {
           <li key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.25rem' }}>
-                <span className="badge badge-warn">⛔ Bloqueado</span>
+                <span className="badge badge-warn" style={{ display: 'inline-flex', alignItems: 'center', gap: '.25rem' }}>
+                  <BanIcon size={12} />
+                  Bloqueado
+                </span>
                 <strong style={{ fontSize: '.95rem' }}>
                   {fmt(b.starts_at)} → {fmt(b.ends_at)}
                 </strong>
@@ -205,7 +209,7 @@ export default function Bloqueios() {
               style={{ borderColor: 'var(--err)', color: 'var(--err)' }}
               onClick={() => remove(b)}
             >
-              Desbloquear
+              Remover
             </button>
           </li>
         ))}

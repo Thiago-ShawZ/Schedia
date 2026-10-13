@@ -5,6 +5,7 @@ import { brl } from '../lib/format'
 import SlotPicker from '../components/SlotPicker'
 import { msgErro } from '../components/Reserva'
 import type { Hours, Slot } from '../lib/slots'
+import { CalendarIcon, ClockIcon, BuildingIcon } from '../components/Icons'
 
 type A = {
   id: string
@@ -74,7 +75,7 @@ export default function MeusAgendamentos() {
       p_start: new Date(slot.startMs).toISOString(),
     })
     if (error) return setMsg(msgErro(error))
-    setMsg('Agendamento reagendado com sucesso!')
+    setMsg('Agendamento reagendado com sucesso.')
     setResch(null)
     setSlot(null)
     load()
@@ -84,7 +85,7 @@ export default function MeusAgendamentos() {
     return (
       <div className="center" style={{ paddingTop: '4rem' }}>
         <div className="spinner" />
-        <p style={{ marginTop: '.75rem' }}>Carregando seus agendamentos...</p>
+        <p style={{ marginTop: '.75rem', fontSize: '.88rem' }}>Carregando seus agendamentos...</p>
       </div>
     )
   }
@@ -100,7 +101,7 @@ export default function MeusAgendamentos() {
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ marginBottom: '.35rem' }}>Meus agendamentos</h1>
         <p style={{ color: 'var(--muted)', fontSize: '.92rem' }}>
-          Consulte seus horários marcados, reagende ou cancele quando necessário.
+          Consulte suas reservas, reagende ou cancele atendimentos.
         </p>
       </div>
 
@@ -157,15 +158,17 @@ export default function MeusAgendamentos() {
 
       {displayItems.length === 0 ? (
         <div className="card empty">
-          <span className="empty-icon">🗓️</span>
+          <div style={{ display: 'inline-flex', padding: '1rem', background: 'var(--bg-sub)', borderRadius: '50%', color: 'var(--muted)', marginBottom: '.75rem' }}>
+            <CalendarIcon size={32} />
+          </div>
           <h2>
             {activeTab === 'futuros'
               ? 'Nenhum agendamento futuro'
               : 'Nenhum agendamento no histórico'}
           </h2>
-          <p style={{ maxWidth: '400px', margin: '.35rem auto 1rem' }}>
+          <p style={{ maxWidth: '400px', margin: '.35rem auto 1rem', fontSize: '.88rem' }}>
             {activeTab === 'futuros'
-              ? 'Você não tem horários marcados no momento. Que tal descobrir serviços no Hub?'
+              ? 'Você não possui reservas agendadas no momento.'
               : 'Seus atendimentos concluídos ou cancelados aparecerão aqui.'}
           </p>
           {activeTab === 'futuros' && (
@@ -196,23 +199,25 @@ export default function MeusAgendamentos() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.35rem' }}>
                       <span className={`badge ${st.badge}`}>{st.label}</span>
-                      <span style={{ fontSize: '.8rem', color: 'var(--muted)' }}>
-                        ⏱️ {a.duration_min} min
+                      <span style={{ fontSize: '.8rem', color: 'var(--muted)', display: 'inline-flex', alignItems: 'center', gap: '.25rem' }}>
+                        <ClockIcon size={12} />
+                        {a.duration_min} min
                       </span>
                     </div>
-                    <strong style={{ fontSize: '1.1rem' }}>{a.service_name}</strong>
-                    <div style={{ marginTop: '.2rem' }}>
+                    <strong style={{ fontSize: '1.08rem' }}>{a.service_name}</strong>
+                    <div style={{ marginTop: '.25rem' }}>
                       <Link
                         to={`/n/${a.business_slug}`}
-                        style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '.9rem' }}
+                        style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '.88rem', display: 'inline-flex', alignItems: 'center', gap: '.3rem' }}
                       >
-                        🏪 {a.business_name}
+                        <BuildingIcon size={13} />
+                        {a.business_name}
                       </Link>
                     </div>
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--fg)' }}>
+                    <div style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--fg)' }}>
                       {brl(a.price_cents)}
                     </div>
                   </div>
@@ -230,20 +235,21 @@ export default function MeusAgendamentos() {
                     color: 'var(--fg)',
                   }}
                 >
-                  <span>📅</span>
+                  <CalendarIcon size={15} style={{ color: 'var(--primary)' }} />
                   <span style={{ fontWeight: 600 }}>{quando(a)}</span>
                 </div>
 
                 {/* Reschedule inline area */}
                 {resch === a.id && (
                   <div className="reserva" style={{ width: '100%', marginTop: '.5rem' }}>
-                    <h3 style={{ marginTop: 0, textTransform: 'none', color: 'var(--fg)' }}>
+                    <h3 style={{ marginTop: 0, textTransform: 'none', color: 'var(--fg)', fontSize: '1rem' }}>
                       Selecione uma nova data e horário
                     </h3>
                     <SlotPicker
                       bizId={a.business_id}
                       durationMin={a.duration_min}
                       cfg={a}
+                      excludeStartsAt={a.starts_at}
                       onPick={setSlot}
                     />
                     <div className="actions" style={{ marginTop: '1rem' }}>
@@ -293,8 +299,8 @@ export default function MeusAgendamentos() {
                         </button>
                       </>
                     ) : (
-                      <small style={{ color: 'var(--muted)' }}>
-                        ⚠️ Prazo para alteração ({a.min_cancel_hours}h antes) encerrado.
+                      <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
+                        Prazo de alteração ({a.min_cancel_hours}h antes) encerrado.
                       </small>
                     )}
                   </div>

@@ -6,6 +6,7 @@ import AuthForm from '../auth/AuthForm'
 import SlotPicker, { type Cfg } from './SlotPicker'
 import { brl } from '../lib/format'
 import type { Slot } from '../lib/slots'
+import { CheckIcon, ClockIcon, CalendarIcon } from './Icons'
 
 export type { Cfg } from './SlotPicker'
 type Props = {
@@ -90,12 +91,13 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.75rem', flexWrap: 'wrap', gap: '.5rem' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '1.2rem' }}>{svc.name}</h2>
-              <small style={{ color: 'var(--muted)' }}>
-                ⏱️ Duração: {svc.duration_min} minutos · Valor: <strong>{brl(svc.price_cents)}</strong>
+              <small style={{ color: 'var(--muted)', display: 'inline-flex', alignItems: 'center', gap: '.3rem', marginTop: '.2rem' }}>
+                <ClockIcon size={13} />
+                Duração: {svc.duration_min} min · Valor: <strong style={{ color: 'var(--fg)' }}>{brl(svc.price_cents)}</strong>
               </small>
             </div>
-            <button className="link" onClick={onClose} style={{ fontSize: '.88rem' }}>
-              ✕ Trocar serviço
+            <button className="link" onClick={onClose} style={{ fontSize: '.84rem' }}>
+              Trocar serviço
             </button>
           </div>
 
@@ -132,13 +134,13 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
       {step === 1 && (
         <div style={{ maxWidth: '440px', margin: '0 auto' }}>
           <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-            <p style={{ margin: 0, fontSize: '.95rem' }}>
-              Para confirmar seu horário em <strong>{slot?.label}</strong>, entre ou crie sua conta no Schedia:
+            <p style={{ margin: 0, fontSize: '.92rem', color: 'var(--muted)' }}>
+              Para confirmar sua reserva para às <strong>{slot?.label}</strong>, entre ou crie sua conta:
             </p>
           </div>
           <AuthForm onSuccess={() => setStep(2)} />
           <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-            <button className="link" onClick={() => setStep(0)}>
+            <button className="link" onClick={() => setStep(0)} style={{ fontSize: '.84rem' }}>
               ← Voltar e escolher outro horário
             </button>
           </div>
@@ -148,7 +150,7 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
       {/* Step 2: Confirmar */}
       {step === 2 && (
         <div>
-          <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>Confirme os dados do agendamento</h2>
+          <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>Confirme os dados da reserva</h2>
           <div
             className="card"
             style={{
@@ -158,7 +160,7 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
               border: '1.5px solid var(--line)',
             }}
           >
-            <div style={{ display: 'grid', gap: '.65rem' }}>
+            <div style={{ display: 'grid', gap: '.75rem' }}>
               <div>
                 <small style={{ color: 'var(--muted)', display: 'block', textTransform: 'uppercase', fontSize: '.72rem', fontWeight: 700 }}>
                   Serviço
@@ -169,8 +171,9 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
                 <small style={{ color: 'var(--muted)', display: 'block', textTransform: 'uppercase', fontSize: '.72rem', fontWeight: 700 }}>
                   Data e Horário
                 </small>
-                <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--primary)' }}>
-                  🗓️ {quando}
+                <span style={{ fontSize: '.98rem', fontWeight: 600, color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: '.35rem' }}>
+                  <CalendarIcon size={15} />
+                  {quando}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '2rem' }}>
@@ -178,7 +181,7 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
                   <small style={{ color: 'var(--muted)', display: 'block', textTransform: 'uppercase', fontSize: '.72rem', fontWeight: 700 }}>
                     Duração
                   </small>
-                  <span>⏱️ {svc.duration_min} min</span>
+                  <span style={{ fontSize: '.92rem' }}>{svc.duration_min} min</span>
                 </div>
                 <div>
                   <small style={{ color: 'var(--muted)', display: 'block', textTransform: 'uppercase', fontSize: '.72rem', fontWeight: 700 }}>
@@ -190,8 +193,8 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
             </div>
           </div>
 
-          <p style={{ fontSize: '.84rem', color: 'var(--muted)', margin: '.5rem 0 1rem' }}>
-            ℹ️ Cancelamento ou reagendamento sem taxa permitido até {cfg.min_cancel_hours} horas antes do atendimento.
+          <p style={{ fontSize: '.82rem', color: 'var(--muted)', margin: '.5rem 0 1rem' }}>
+            Cancelamento ou reagendamento permitido sem taxa até {cfg.min_cancel_hours} horas antes do atendimento.
           </p>
 
           {err && (
@@ -213,11 +216,25 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
 
       {/* Step 3: Concluído */}
       {step === 3 && (
-        <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-          <span style={{ fontSize: '3.5rem' }}>🎉</span>
-          <h2 style={{ fontSize: '1.4rem', margin: '.5rem 0' }}>Agendamento Confirmado!</h2>
-          <p style={{ color: 'var(--muted)', maxWidth: '420px', margin: '0 auto 1.5rem' }}>
-            Seu horário para <strong>{svc.name}</strong> foi reservado para <strong>{quando}</strong>.
+        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <div
+            style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              background: 'var(--ok-lt)',
+              color: 'var(--ok)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '1rem',
+            }}
+          >
+            <CheckIcon size={30} />
+          </div>
+          <h2 style={{ fontSize: '1.4rem', margin: '0 0 .5rem' }}>Agendamento Confirmado</h2>
+          <p style={{ color: 'var(--muted)', maxWidth: '440px', margin: '0 auto 1.5rem', fontSize: '.92rem' }}>
+            Sua reserva para <strong>{svc.name}</strong> foi confirmada para <strong>{quando}</strong>.
           </p>
           <div className="row" style={{ gap: '.75rem', justifyContent: 'center' }}>
             <Link className="btn" to="/agendamentos">
