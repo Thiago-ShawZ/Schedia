@@ -5,7 +5,8 @@ import { brl } from '../lib/format'
 import SlotPicker from '../components/SlotPicker'
 import { msgErro } from '../components/Reserva'
 import type { Hours, Slot } from '../lib/slots'
-import { CalendarIcon, ClockIcon, BuildingIcon } from '../components/Icons'
+import { CalendarIcon, ClockIcon, BuildingIcon, DownloadIcon } from '../components/Icons'
+import { buildGoogleCalendarUrl, downloadIcsFile } from '../lib/calendar'
 
 type A = {
   id: string
@@ -279,34 +280,79 @@ export default function MeusAgendamentos() {
                     className="appt-actions"
                     style={{
                       display: 'flex',
-                      justifyContent: 'flex-end',
+                      justifyContent: 'space-between',
                       gap: '.75rem',
                       alignItems: 'center',
                       borderTop: '1px solid var(--line)',
                       paddingTop: '.75rem',
                       width: '100%',
+                      flexWrap: 'wrap',
                     }}
                   >
-                    {editavel(a) ? (
-                      <>
-                        <button
-                          className="btn ghost sm"
-                          onClick={() => setResch(a.id)}
-                        >
-                          Reagendar
-                        </button>
-                        <button
-                          className="btn sm danger"
-                          onClick={() => cancelar(a)}
-                        >
-                          Cancelar
-                        </button>
-                      </>
-                    ) : (
-                      <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
-                        Prazo de alteração ({a.min_cancel_hours}h antes) encerrado.
-                      </small>
-                    )}
+                    {/* Ações de Calendário (Google Agenda e .ics) */}
+                    <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <a
+                        href={buildGoogleCalendarUrl({
+                          id: a.id,
+                          serviceName: a.service_name,
+                          businessName: a.business_name,
+                          startsAt: a.starts_at,
+                          durationMin: a.duration_min,
+                          timezone: a.timezone,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn ghost sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem' }}
+                        title="Adicionar evento ao Google Agenda"
+                      >
+                        <CalendarIcon size={14} />
+                        <span>Adicionar à agenda</span>
+                      </a>
+                      <button
+                        type="button"
+                        className="btn ghost sm"
+                        onClick={() =>
+                          downloadIcsFile({
+                            id: a.id,
+                            serviceName: a.service_name,
+                            businessName: a.business_name,
+                            startsAt: a.starts_at,
+                            durationMin: a.duration_min,
+                            timezone: a.timezone,
+                          })
+                        }
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem' }}
+                        title="Baixar arquivo de calendário (.ics) para Apple Calendar, Outlook ou outros"
+                      >
+                        <DownloadIcon size={14} />
+                        <span>Baixar .ics</span>
+                      </button>
+                    </div>
+
+                    {/* Ações de Gestão (Reagendar / Cancelar) */}
+                    <div style={{ display: 'flex', gap: '.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {editavel(a) ? (
+                        <>
+                          <button
+                            className="btn ghost sm"
+                            onClick={() => setResch(a.id)}
+                          >
+                            Reagendar
+                          </button>
+                          <button
+                            className="btn sm danger"
+                            onClick={() => cancelar(a)}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
+                          Prazo de alteração ({a.min_cancel_hours}h antes) encerrado.
+                        </small>
+                      )}
+                    </div>
                   </div>
                 )}
               </li>
