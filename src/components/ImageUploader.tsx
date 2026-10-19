@@ -10,8 +10,8 @@ type Props = {
   size?: number
 }
 
-/** Redimensiona imagem no canvas do navegador para produzir uma data URL leve (máx 360x360). */
-function resizeImage(file: File, maxDim = 360, quality = 0.82): Promise<string> {
+/** Redimensiona imagem no canvas do navegador para produzir uma data URL leve (máx 200x200). */
+function resizeImage(file: File, maxDim = 200, quality = 0.8): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onerror = reject

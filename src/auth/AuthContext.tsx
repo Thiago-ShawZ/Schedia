@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
@@ -13,11 +13,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false) })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) =>
+      setSession(prev => (prev?.access_token === s?.access_token && prev?.user.id === s?.user.id ? prev : s))
+    )
     return () => subscription.unsubscribe()
   }, [])
 
-  return <AuthCtx.Provider value={{ session, loading }}>{children}</AuthCtx.Provider>
+  const value = useMemo(() => ({ session, loading }), [session, loading])
+  return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>
 }
 
 export function RequireAuth({ children }: { children: ReactNode }) {

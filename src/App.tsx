@@ -1,21 +1,22 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, RequireAuth, useAuth } from './auth/AuthContext'
 import { supabase } from './lib/supabase'
 import Landing from './pages/Landing'
-import Auth from './pages/Auth'
-import Inicio from './pages/Inicio'
-import Hub from './pages/Hub'
-import Negocio from './pages/Negocio'
-import { PainelLayout, PainelSeletor } from './pages/Painel'
-import NovoNegocio from './pages/NovoNegocio'
-import CatalogoCrud from './pages/CatalogoCrud'
-import Configuracoes from './pages/Configuracoes'
-import Agenda from './pages/Agenda'
-import Bloqueios from './pages/Bloqueios'
-import MeusAgendamentos from './pages/MeusAgendamentos'
-import Perfil from './pages/Perfil'
-import RedefinirSenha from './pages/RedefinirSenha'
+const Auth = lazy(() => import('./pages/Auth'))
+const Inicio = lazy(() => import('./pages/Inicio'))
+const Hub = lazy(() => import('./pages/Hub'))
+const Negocio = lazy(() => import('./pages/Negocio'))
+const PainelLayout = lazy(() => import('./pages/Painel').then(m => ({ default: m.PainelLayout })))
+const PainelSeletor = lazy(() => import('./pages/Painel').then(m => ({ default: m.PainelSeletor })))
+const NovoNegocio = lazy(() => import('./pages/NovoNegocio'))
+const CatalogoCrud = lazy(() => import('./pages/CatalogoCrud'))
+const Configuracoes = lazy(() => import('./pages/Configuracoes'))
+const Agenda = lazy(() => import('./pages/Agenda'))
+const Bloqueios = lazy(() => import('./pages/Bloqueios'))
+const MeusAgendamentos = lazy(() => import('./pages/MeusAgendamentos'))
+const Perfil = lazy(() => import('./pages/Perfil'))
+const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha'))
 import {
   BrandLogoMark,
   SearchIcon,
@@ -31,21 +32,25 @@ function Header() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const close = () => setOpen(false)
 
+  const uid = session?.user?.id
   useEffect(() => {
-    if (!session?.user?.id) {
+    if (!uid) {
       setAvatarUrl(null)
       return
     }
-    // Tenta carregar avatar_url do perfil
+    let off = false
     supabase
       .from('profiles')
       .select('avatar_url')
-      .eq('id', session.user.id)
-      .single()
+      .eq('id', uid)
+      .maybeSingle()
       .then(({ data }) => {
-        if (data?.avatar_url) setAvatarUrl(data.avatar_url)
+        if (!off && data?.avatar_url) setAvatarUrl(data.avatar_url)
       })
-  }, [session])
+    return () => {
+      off = true
+    }
+  }, [uid])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -107,6 +112,7 @@ function Header() {
         <button
           className="nav-toggle"
           aria-label={open ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={open}
           onClick={() => setOpen(!open)}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -120,7 +126,7 @@ function Header() {
       </header>
 
       {/* Mobile Drawer */}
-      <div className={`mobile-drawer ${open ? 'open' : ''}`}>
+      <div className={`mobile-drawer ${open ? 'open' : ''}`} role="dialog" aria-modal="true" aria-label="Menu de navegação">
         <div className="mobile-overlay" onClick={close} />
         <div className="mobile-menu">
           <div className="mobile-menu-header">
@@ -128,7 +134,7 @@ function Header() {
               <BrandLogoMark size={24} />
               <span>Schedia</span>
             </span>
-            <button className="icon-btn" onClick={close} aria-label="Fechar">
+            <button className="icon-btn" onClick={close} aria-label="Fechar menu">
               ✕
             </button>
           </div>
@@ -186,6 +192,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Header />
+        <Suspense fallback={<div className="center" style={{ paddingTop: '4rem' }}><div className="spinner" /></div>}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/n/:slug" element={<Negocio />} />
@@ -207,6 +214,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   )

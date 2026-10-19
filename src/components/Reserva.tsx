@@ -158,7 +158,7 @@ export default function Reserva({ bizId, bizName, bizPhone, svc, cfg, onClose }:
         <div style={{ maxWidth: '440px', margin: '0 auto' }}>
           <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
             <p style={{ margin: 0, fontSize: '.92rem', color: 'var(--muted)' }}>
-              Para confirmar sua reserva para às <strong>{slot?.label}</strong>, entre ou crie sua conta:
+              Para confirmar sua reserva às <strong>{slot?.label}</strong>, entre ou crie sua conta:
             </p>
           </div>
           <AuthForm onSuccess={() => setStep(2)} />
