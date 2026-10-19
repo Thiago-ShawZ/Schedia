@@ -15,7 +15,7 @@ type Props = {
   cfg: Cfg
   onClose: () => void
 }
-const PASSOS = ['1. Horário', '2. Identificação', '3. Confirmar', '4. Concluído']
+const PASSOS = ['Horário', 'Identificação', 'Confirmar', 'Concluído']
 
 export function msgErro(e: { code?: string; message: string }) {
   if (e.code === '23P01') return 'Esse horário acabou de ser reservado por outro cliente. Escolha outro.'
@@ -123,7 +123,7 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
             >
               Continuar para confirmação →
             </button>
-            <button className="btn ghost" onClick={onClose}>
+            <button className="btn danger" onClick={onClose}>
               Cancelar
             </button>
           </div>
@@ -176,7 +176,7 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
                   {quando}
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: '2rem' }}>
+              <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                 <div>
                   <small style={{ color: 'var(--muted)', display: 'block', textTransform: 'uppercase', fontSize: '.72rem', fontWeight: 700 }}>
                     Duração

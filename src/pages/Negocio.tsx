@@ -150,6 +150,7 @@ export default function Negocio() {
             {svcs.map(s => (
               <li
                 key={s.id}
+                className="service-card-item"
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',

@@ -117,6 +117,8 @@ export default function SlotPicker({
             overflowX: 'auto',
             paddingBottom: '.5rem',
             scrollbarWidth: 'thin',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehaviorX: 'contain',
           }}
           role="group"
           aria-label="Escolha a data do atendimento"
@@ -134,8 +136,9 @@ export default function SlotPicker({
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  minWidth: '66px',
-                  padding: '.55rem .35rem',
+                  minWidth: '68px',
+                  minHeight: '56px',
+                  padding: '.5rem .35rem',
                   borderRadius: 'var(--r-sm)',
                   border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--line)',
                   background: isSelected ? 'var(--primary-lt)' : 'var(--card)',
@@ -144,6 +147,7 @@ export default function SlotPicker({
                   fontWeight: isSelected ? 700 : 500,
                   transition: 'all var(--tr)',
                   flexShrink: 0,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <span style={{ fontSize: '.7rem', textTransform: 'uppercase', opacity: isSelected ? 1 : 0.7 }}>
@@ -190,7 +194,7 @@ export default function SlotPicker({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(78px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
               gap: '.45rem',
             }}
             role="group"
@@ -214,6 +218,8 @@ export default function SlotPicker({
                     justifyContent: 'center',
                     fontSize: '.9rem',
                     fontWeight: isSelected ? 700 : 500,
+                    minHeight: '44px',
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   {s.label}

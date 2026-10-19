@@ -242,7 +242,7 @@ export default function Agenda() {
                     </div>
 
                     {r.status === 'confirmed' && (
-                      <div className="actions">
+                      <div className="actions appt-actions">
                         {isPast && (
                           <>
                             <button
@@ -263,8 +263,7 @@ export default function Agenda() {
                           </>
                         )}
                         <button
-                          className="btn ghost sm danger"
-                          style={{ borderColor: 'var(--err)', color: 'var(--err)' }}
+                          className="btn sm danger"
                           onClick={() => cancelar(r)}
                         >
                           Cancelar

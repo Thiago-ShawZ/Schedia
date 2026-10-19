@@ -124,6 +124,7 @@ export default function MeusAgendamentos() {
           type="button"
           onClick={() => setActiveTab('futuros')}
           style={{
+            flex: 1,
             padding: '.65rem 1rem',
             border: 'none',
             background: 'none',
@@ -132,6 +133,7 @@ export default function MeusAgendamentos() {
             color: activeTab === 'futuros' ? 'var(--primary)' : 'var(--muted)',
             borderBottom: activeTab === 'futuros' ? '2.5px solid var(--primary)' : '2.5px solid transparent',
             cursor: 'pointer',
+            minHeight: '44px',
             transition: 'all var(--tr)',
           }}
         >
@@ -141,6 +143,7 @@ export default function MeusAgendamentos() {
           type="button"
           onClick={() => setActiveTab('historico')}
           style={{
+            flex: 1,
             padding: '.65rem 1rem',
             border: 'none',
             background: 'none',
@@ -149,6 +152,7 @@ export default function MeusAgendamentos() {
             color: activeTab === 'historico' ? 'var(--primary)' : 'var(--muted)',
             borderBottom: activeTab === 'historico' ? '2.5px solid var(--primary)' : '2.5px solid transparent',
             cursor: 'pointer',
+            minHeight: '44px',
             transition: 'all var(--tr)',
           }}
         >
@@ -272,6 +276,7 @@ export default function MeusAgendamentos() {
                 {/* Actions footer */}
                 {isConfirmed && isFuture && resch !== a.id && (
                   <div
+                    className="appt-actions"
                     style={{
                       display: 'flex',
                       justifyContent: 'flex-end',
@@ -291,8 +296,7 @@ export default function MeusAgendamentos() {
                           Reagendar
                         </button>
                         <button
-                          className="btn ghost sm danger"
-                          style={{ borderColor: 'var(--err)', color: 'var(--err)' }}
+                          className="btn sm danger"
                           onClick={() => cancelar(a)}
                         >
                           Cancelar

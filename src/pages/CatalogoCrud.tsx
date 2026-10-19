@@ -163,7 +163,7 @@ export default function CatalogoCrud({ table }: { table: 'services' | 'products'
             {editingId && (
               <button
                 type="button"
-                className="btn ghost"
+                className="btn danger"
                 onClick={() => {
                   setEditingId(null)
                   setForm(empty)
@@ -195,10 +195,11 @@ export default function CatalogoCrud({ table }: { table: 'services' | 'products'
               justifyContent: 'space-between',
               alignItems: 'center',
               gap: '1rem',
+              flexWrap: 'wrap',
               padding: '1rem 1.25rem',
             }}
           >
-            <div>
+            <div style={{ flex: 1, minWidth: '180px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.25rem' }}>
                 <span className={`badge ${it.is_active ? 'badge-ok' : 'badge-muted'}`}>
                   {it.is_active ? 'Ativo' : 'Inativo'}
@@ -216,17 +217,13 @@ export default function CatalogoCrud({ table }: { table: 'services' | 'products'
               </small>
             </div>
 
-            <div className="actions">
+            <div className="actions appt-actions">
               <button className="btn ghost sm" onClick={() => edit(it)}>
                 Editar
               </button>
               <button
-                className={`btn ghost sm ${it.is_active ? 'danger' : ''}`}
-                style={
-                  it.is_active
-                    ? { borderColor: 'var(--line)', color: 'var(--muted)' }
-                    : { borderColor: 'var(--ok)', color: 'var(--ok)' }
-                }
+                className={`btn sm ${it.is_active ? 'danger' : ''}`}
+                style={it.is_active ? undefined : { background: 'var(--ok)' }}
                 onClick={() => toggle(it)}
               >
                 {it.is_active ? 'Desativar' : 'Ativar'}

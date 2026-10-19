@@ -205,8 +205,7 @@ export default function Bloqueios() {
               </small>
             </div>
             <button
-              className="btn ghost sm danger"
-              style={{ borderColor: 'var(--err)', color: 'var(--err)' }}
+              className="btn sm danger"
               onClick={() => remove(b)}
             >
               Remover

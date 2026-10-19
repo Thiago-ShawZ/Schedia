@@ -218,7 +218,6 @@ export default function Configuracoes() {
                     aria-label={`${nome}: abertura`}
                     value={dias[i].start}
                     onChange={e => setDia(i, { start: e.target.value })}
-                    style={{ width: '115px' }}
                   />
                   <span style={{ color: 'var(--muted)', fontSize: '.84rem' }}>às</span>
                   <input
@@ -226,7 +225,6 @@ export default function Configuracoes() {
                     aria-label={`${nome}: fechamento`}
                     value={dias[i].end}
                     onChange={e => setDia(i, { end: e.target.value })}
-                    style={{ width: '115px' }}
                   />
                 </div>
               ) : (
