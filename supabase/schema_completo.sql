@@ -458,3 +458,7 @@ grant execute on function public.get_business_agenda, public.get_my_appointments
 -- Schedia · Fase 5/6 · suporte a imagens de logo e avatar
 alter table public.businesses add column if not exists logo_url text;
 alter table public.profiles add column if not exists avatar_url text;
+
+-- Schedia · Fase 1 · Contato comercial via WhatsApp
+alter table public.businesses add column if not exists phone text;
+

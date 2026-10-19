@@ -4,13 +4,15 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import AuthForm from '../auth/AuthForm'
 import SlotPicker, { type Cfg } from './SlotPicker'
-import { brl } from '../lib/format'
+import { brl, buildWhatsAppLink } from '../lib/format'
 import type { Slot } from '../lib/slots'
-import { CheckIcon, ClockIcon, CalendarIcon } from './Icons'
+import { CheckIcon, ClockIcon, CalendarIcon, WhatsAppIcon } from './Icons'
 
 export type { Cfg } from './SlotPicker'
 type Props = {
   bizId: string
+  bizName?: string
+  bizPhone?: string | null
   svc: { id: string; name: string; price_cents: number; duration_min: number }
   cfg: Cfg
   onClose: () => void
@@ -25,13 +27,34 @@ export function msgErro(e: { code?: string; message: string }) {
   return 'Não foi possível concluir o agendamento. Tente novamente.'
 }
 
-export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
+export default function Reserva({ bizId, bizName, bizPhone, svc, cfg, onClose }: Props) {
   const { session } = useAuth()
   const [step, setStep] = useState(0)
   const [slot, setSlot] = useState<Slot | null>(null)
   const [reload, setReload] = useState(0)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [bizInfo, setBizInfo] = useState<{ name: string; phone: string | null }>({
+    name: bizName ?? '',
+    phone: bizPhone ?? null,
+  })
+
+  useEffect(() => {
+    if (bizName !== undefined && bizPhone !== undefined) {
+      setBizInfo({ name: bizName, phone: bizPhone })
+    } else {
+      supabase
+        .from('businesses')
+        .select('name,phone')
+        .eq('id', bizId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setBizInfo({ name: data.name, phone: data.phone })
+          }
+        })
+    }
+  }, [bizId, bizName, bizPhone])
 
   useEffect(() => {
     if (step === 1 && session) setStep(2)
@@ -215,37 +238,83 @@ export default function Reserva({ bizId, svc, cfg, onClose }: Props) {
       )}
 
       {/* Step 3: Concluído */}
-      {step === 3 && (
-        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-          <div
-            style={{
-              width: '60px',
-              height: '60px',
-              borderRadius: '50%',
-              background: 'var(--ok-lt)',
-              color: 'var(--ok)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '1rem',
-            }}
-          >
-            <CheckIcon size={30} />
+      {step === 3 && (() => {
+        const whatsAppMsg = `Olá! Acabei de agendar um horário pelo Schedia:
+• Estabelecimento: ${bizInfo.name || 'Estabelecimento'}
+• Serviço: ${svc.name}
+• Data e Horário: ${quando}
+
+Gostaria de confirmar os detalhes do meu atendimento.`
+        const whatsappUrl = buildWhatsAppLink(bizInfo.phone, whatsAppMsg)
+
+        return (
+          <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+            <div
+              style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                background: 'var(--ok-lt)',
+                color: 'var(--ok)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1rem',
+              }}
+            >
+              <CheckIcon size={30} />
+            </div>
+            <h2 style={{ fontSize: '1.4rem', margin: '0 0 .5rem' }}>Agendamento Confirmado</h2>
+            <p style={{ color: 'var(--muted)', maxWidth: '440px', margin: '0 auto 1.25rem', fontSize: '.92rem' }}>
+              Sua reserva para <strong>{svc.name}</strong> foi confirmada para <strong>{quando}</strong>.
+            </p>
+
+            {/* Ação WhatsApp ou mensagem informativa */}
+            {whatsappUrl ? (
+              <div style={{ margin: '1.5rem auto', maxWidth: '360px' }}>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn whatsapp"
+                  style={{ width: '100%', minHeight: '44px', fontSize: '.95rem' }}
+                >
+                  <WhatsAppIcon size={19} />
+                  <span>Conversar pelo WhatsApp</span>
+                </a>
+                <small style={{ display: 'block', marginTop: '.45rem', color: 'var(--muted)', fontSize: '.78rem' }}>
+                  Envie uma mensagem ao estabelecimento com os dados da sua reserva.
+                </small>
+              </div>
+            ) : (
+              <div
+                style={{
+                  margin: '1rem auto 1.5rem',
+                  padding: '.65rem 1rem',
+                  borderRadius: 'var(--r-sm)',
+                  background: 'var(--bg-sub)',
+                  border: '1px solid var(--line)',
+                  display: 'inline-block',
+                  maxWidth: '420px',
+                  fontSize: '.82rem',
+                  color: 'var(--muted)',
+                }}
+              >
+                Este estabelecimento não possui WhatsApp comercial cadastrado para contato direto.
+              </div>
+            )}
+
+            <div className="row" style={{ gap: '.75rem', justifyContent: 'center' }}>
+              <Link className="btn" to="/agendamentos">
+                Ver meus agendamentos
+              </Link>
+              <button className="btn ghost" onClick={onClose}>
+                Voltar ao negócio
+              </button>
+            </div>
           </div>
-          <h2 style={{ fontSize: '1.4rem', margin: '0 0 .5rem' }}>Agendamento Confirmado</h2>
-          <p style={{ color: 'var(--muted)', maxWidth: '440px', margin: '0 auto 1.5rem', fontSize: '.92rem' }}>
-            Sua reserva para <strong>{svc.name}</strong> foi confirmada para <strong>{quando}</strong>.
-          </p>
-          <div className="row" style={{ gap: '.75rem', justifyContent: 'center' }}>
-            <Link className="btn" to="/agendamentos">
-              Ver meus agendamentos
-            </Link>
-            <button className="btn ghost" onClick={onClose}>
-              Voltar ao negócio
-            </button>
-          </div>
-        </div>
-      )}
+        )
+      })()}
     </section>
   )
 }

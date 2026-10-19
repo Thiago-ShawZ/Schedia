@@ -8,7 +8,7 @@ import { ArrowLeftIcon } from '../components/Icons'
 export default function NovoNegocio() {
   const nav = useNavigate()
   const [cats, setCats] = useState<{ id: number; name: string }[]>([])
-  const [f, setF] = useState({ name: '', slug: '', category_id: '', city: '', description: '', logo_url: '' })
+  const [f, setF] = useState({ name: '', slug: '', category_id: '', city: '', phone: '', description: '', logo_url: '' })
   const [slugTouched, setSlugTouched] = useState(false)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -31,6 +31,7 @@ export default function NovoNegocio() {
       name: f.name.trim(),
       slug: f.slug,
       city: f.city.trim() || null,
+      phone: f.phone.trim() || null,
       description: f.description.trim() || null,
       category_id: f.category_id ? Number(f.category_id) : null,
       logo_url: f.logo_url.trim() || null,
@@ -132,6 +133,19 @@ export default function NovoNegocio() {
               onChange={e => setF({ ...f, city: e.target.value })}
               placeholder="Ex.: São Paulo, SP"
             />
+          </label>
+
+          <label>
+            Telefone / WhatsApp comercial (opcional)
+            <input
+              type="tel"
+              value={f.phone}
+              onChange={e => setF({ ...f, phone: e.target.value })}
+              placeholder="Ex.: (11) 98765-4321"
+            />
+            <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
+              Utilizado para contato e confirmação de agendamentos pelo WhatsApp.
+            </small>
           </label>
 
           <label>

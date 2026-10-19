@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { brl } from '../lib/format'
+import { brl, normalizeWhatsAppPhone } from '../lib/format'
 import Reserva, { type Cfg } from '../components/Reserva'
-import { LocationIcon, ClockIcon, BuildingIcon } from '../components/Icons'
+import { LocationIcon, ClockIcon, BuildingIcon, WhatsAppIcon } from '../components/Icons'
 
 type Biz = {
   id: string
@@ -11,6 +11,7 @@ type Biz = {
   description: string | null
   city: string | null
   logo_url?: string | null
+  phone?: string | null
   categories: { name: string } | null
 }
 type Item = {
@@ -40,7 +41,7 @@ export default function Negocio() {
     ;(async () => {
       const { data: b } = await supabase
         .from('businesses')
-        .select('id,name,description,city,logo_url,categories(name)')
+        .select('id,name,description,city,logo_url,phone,categories(name)')
         .eq('slug', slug)
         .eq('is_published', true)
         .maybeSingle()
@@ -121,6 +122,18 @@ export default function Negocio() {
                   {biz.city}
                 </span>
               )}
+              {biz.phone && normalizeWhatsAppPhone(biz.phone) && (
+                <a
+                  href={`https://wa.me/${normalizeWhatsAppPhone(biz.phone)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="badge badge-ok"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', textDecoration: 'none' }}
+                >
+                  <WhatsAppIcon size={12} />
+                  <span>{biz.phone}</span>
+                </a>
+              )}
             </div>
             <h1 style={{ margin: '0 0 .5rem', fontSize: '1.55rem' }}>{biz.name}</h1>
             {biz.description && (
@@ -134,7 +147,14 @@ export default function Negocio() {
 
       {/* Booking Form (when item selected) or Catalog */}
       {sel && cfg ? (
-        <Reserva bizId={biz.id} svc={sel} cfg={cfg} onClose={() => setSel(null)} />
+        <Reserva
+          bizId={biz.id}
+          bizName={biz.name}
+          bizPhone={biz.phone}
+          svc={sel}
+          cfg={cfg}
+          onClose={() => setSel(null)}
+        />
       ) : (
         <>
           <div className="sec-hdr">

@@ -22,6 +22,7 @@ export default function Configuracoes() {
     city: '',
     category_id: '',
     logo_url: '',
+    phone: '',
     is_published: false,
   })
   const [cfg, setCfg] = useState({ slot_step_min: 30, min_cancel_hours: 24 })
@@ -45,6 +46,7 @@ export default function Configuracoes() {
           city: b.data.city ?? '',
           category_id: b.data.category_id ? String(b.data.category_id) : '',
           logo_url: b.data.logo_url ?? '',
+          phone: b.data.phone ?? '',
           is_published: b.data.is_published,
         })
       }
@@ -86,6 +88,7 @@ export default function Configuracoes() {
           name: biz.name.trim(),
           description: biz.description.trim() || null,
           city: biz.city.trim() || null,
+          phone: biz.phone.trim() || null,
           category_id: biz.category_id ? Number(biz.category_id) : null,
           logo_url: biz.logo_url.trim() || null,
         })
@@ -183,6 +186,20 @@ export default function Configuracoes() {
               />
             </label>
           </div>
+
+          <label>
+            Telefone / WhatsApp comercial
+            <input
+              type="tel"
+              value={biz.phone}
+              onChange={e => setBiz({ ...biz, phone: e.target.value })}
+              placeholder="Ex.: (11) 98765-4321"
+            />
+            <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
+              Utilizado para os clientes entrarem em contato pelo WhatsApp após agendar um serviço.
+            </small>
+          </label>
+
           <label>
             Descrição do negócio
             <textarea
