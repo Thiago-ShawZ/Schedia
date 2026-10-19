@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { addDays, computeSlots, todayIn, weekday, zonedToUtc, type Hours, type Slot } from '../lib/slots'
 import { CalendarIcon, ClockIcon } from './Icons'
@@ -35,12 +35,16 @@ export default function SlotPicker({
   excludeStartsAt = null,
   onPick,
 }: Props) {
+  const [horizon, setHorizon] = useState(14) // dias à frente; o servidor aceita até 180
   const days = useMemo(() => {
     const t = todayIn(cfg.timezone)
-    return Array.from({ length: 14 }, (_, i) => addDays(t, i)).filter(
+    return Array.from({ length: horizon }, (_, i) => addDays(t, i)).filter(
       d => (cfg.opening_hours[String(weekday(d))] ?? []).length > 0
     )
-  }, [cfg])
+  }, [cfg, horizon])
+  const stripRef = useRef<HTMLDivElement>(null)
+  const scrollStrip = (dir: 1 | -1) =>
+    stripRef.current?.scrollBy({ left: dir * stripRef.current.clientWidth * 0.8, behavior: 'smooth' })
 
   const [date, setDate] = useState(days[0] ?? '')
   const [slots, setSlots] = useState<Slot[] | null>(null)
@@ -60,6 +64,7 @@ export default function SlotPicker({
     setSel(null)
     setLoadError(false)
     onPick(null)
+    let off = false // descarta respostas de datas antigas
 
     const from = zonedToUtc(date, '00:00', cfg.timezone)
     // Janela ampla (-4h a +30h) para garantir cobertura completa de fusos e bloqueios
@@ -70,6 +75,7 @@ export default function SlotPicker({
         p_to: new Date(from + 30 * 3600000).toISOString(),
       })
       .then(({ data, error }) => {
+        if (off) return
         if (error) {
           setLoadError(true)
           setSlots([])
@@ -86,6 +92,9 @@ export default function SlotPicker({
         })
         setSlots(computed)
       })
+    return () => {
+      off = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, reload, bizId, cfg, durationMin, excludeStartsAt])
 
@@ -100,7 +109,7 @@ export default function SlotPicker({
   }
 
   return (
-    <div style={{ display: 'grid', gap: '1.25rem', margin: '1rem 0' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '1.25rem', margin: '1rem 0' }}>
       {/* 1. Date Selector Cards */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', marginBottom: '.55rem' }}>
@@ -110,55 +119,32 @@ export default function SlotPicker({
           </span>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: '.5rem',
-            overflowX: 'auto',
-            paddingBottom: '.5rem',
-            scrollbarWidth: 'thin',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehaviorX: 'contain',
-          }}
-          role="group"
-          aria-label="Escolha a data do atendimento"
-        >
-          {days.map(d => {
-            const { week, day } = dayLabel(d)
-            const isSelected = d === date
-            return (
-              <button
-                type="button"
-                key={d}
-                onClick={() => setDate(d)}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '68px',
-                  minHeight: '56px',
-                  padding: '.5rem .35rem',
-                  borderRadius: 'var(--r-sm)',
-                  border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--line)',
-                  background: isSelected ? 'var(--primary-lt)' : 'var(--card)',
-                  color: isSelected ? 'var(--primary)' : 'var(--fg)',
-                  cursor: 'pointer',
-                  fontWeight: isSelected ? 700 : 500,
-                  transition: 'all var(--tr)',
-                  flexShrink: 0,
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-              >
-                <span style={{ fontSize: '.7rem', textTransform: 'uppercase', opacity: isSelected ? 1 : 0.7 }}>
-                  {week}
-                </span>
-                <span style={{ fontSize: '.95rem', fontWeight: 700, marginTop: '.15rem' }}>
-                  {day}
-                </span>
+        <div className="date-strip-wrap">
+          <button type="button" className="strip-arrow left" aria-label="Datas anteriores" onClick={() => scrollStrip(-1)}>‹</button>
+          <div className="date-strip" ref={stripRef} role="group" aria-label="Escolha a data do atendimento">
+            {days.map(d => {
+              const { week, day } = dayLabel(d)
+              const isSelected = d === date
+              return (
+                <button
+                  type="button"
+                  key={d}
+                  className="date-btn"
+                  aria-pressed={isSelected}
+                  onClick={() => setDate(d)}
+                >
+                  <span className="dw">{week}</span>
+                  <span className="dd">{day}</span>
+                </button>
+              )
+            })}
+            {horizon < 90 && (
+              <button type="button" className="date-btn more" onClick={() => setHorizon(h => h + 14)}>
+                <span className="dd">+ datas</span>
               </button>
-            )
-          })}
+            )}
+          </div>
+          <button type="button" className="strip-arrow right" aria-label="Próximas datas" onClick={() => scrollStrip(1)}>›</button>
         </div>
       </div>
 

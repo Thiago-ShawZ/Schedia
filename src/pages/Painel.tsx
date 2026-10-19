@@ -90,7 +90,7 @@ export function PainelSeletor() {
                 <div style={{ display: 'flex', gap: '.85rem', alignItems: 'center' }}>
                   <div className="avatar" style={{ width: '42px', height: '42px', fontSize: '1rem' }}>
                     {m.businesses?.logo_url ? (
-                      <img src={m.businesses.logo_url} alt={m.businesses.name} className="avatar-img" />
+                      <img src={m.businesses.logo_url} alt={m.businesses.name} className="avatar-img" loading="lazy" decoding="async" />
                     ) : (
                       m.businesses?.name?.charAt(0) ?? 'B'
                     )}
@@ -199,7 +199,7 @@ export function PainelLayout() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem', marginTop: '.35rem' }}>
               <div className="avatar" style={{ width: '38px', height: '38px', fontSize: '.95rem' }}>
                 {biz?.logo_url ? (
-                  <img src={biz.logo_url} alt={biz.name} className="avatar-img" />
+                  <img src={biz.logo_url} alt={biz.name} className="avatar-img" loading="lazy" decoding="async" />
                 ) : (
                   biz?.name?.charAt(0) ?? 'N'
                 )}

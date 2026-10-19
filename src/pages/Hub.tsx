@@ -35,7 +35,7 @@ export default function Hub() {
       const { data } = await query
       setItems((data as unknown as Biz[]) ?? [])
       setLoading(false)
-    }, 200)
+    }, q ? 250 : 0)
     return () => clearTimeout(t)
   }, [q, cat])
 
@@ -163,7 +163,7 @@ export default function Hub() {
                 <div style={{ display: 'flex', gap: '.85rem', alignItems: 'center', marginBottom: '.65rem' }}>
                   <div className="avatar" style={{ width: '44px', height: '44px', fontSize: '1rem' }}>
                     {b.logo_url ? (
-                      <img src={b.logo_url} alt={b.name} className="avatar-img" />
+                      <img src={b.logo_url} alt={b.name} className="avatar-img" loading="lazy" decoding="async" />
                     ) : (
                       b.name.charAt(0).toUpperCase()
                     )}

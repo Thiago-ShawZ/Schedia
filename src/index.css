@@ -59,11 +59,9 @@
 
 /* ─── Reset + Base ────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
-html, body {
-  max-width:100%;
-  overflow-x:hidden;
-  -webkit-text-size-adjust:100%;
-}
+html { -webkit-text-size-adjust:100% }
+/* clip (não hidden): evita criar scroll container e quebrar o header sticky */
+body { max-width:100%; overflow-x:clip }
 body {
   font-family:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   background:var(--bg); color:var(--fg); line-height:1.55;
@@ -290,27 +288,27 @@ button.btn.danger:active {
 }
 .btn.whatsapp,
 a.btn.whatsapp {
-  background: #25d366 !important;
+  background: #15803d !important;
   color: #ffffff !important;
-  border: 1px solid #22c35e !important;
+  border: 1px solid #15803d !important;
   box-shadow: 0 1px 3px rgba(37, 211, 102, .3);
 }
 .btn.whatsapp:hover,
 a.btn.whatsapp:hover {
-  background: #20ba5a !important;
-  border-color: #20ba5a !important;
+  background: #166534 !important;
+  border-color: #166534 !important;
   color: #ffffff !important;
   box-shadow: 0 3px 8px rgba(32, 186, 90, .4);
 }
 .btn.whatsapp:active,
 a.btn.whatsapp:active {
-  background: #1da851 !important;
-  border-color: #1da851 !important;
+  background: #14532d !important;
+  border-color: #14532d !important;
   color: #ffffff !important;
 }
 .btn.whatsapp:focus-visible,
 a.btn.whatsapp:focus-visible {
-  outline: 2px solid #25d366 !important;
+  outline: 2px solid #15803d !important;
   outline-offset: 2px;
 }
 .link {
@@ -391,6 +389,7 @@ textarea { resize:vertical; min-height:80px }
 
 /* ─── Booking / Steps ─────────────────────────────────────────────── */
 .reserva {
+  min-width:0; max-width:100%;
   background:var(--card); border:1px solid var(--line);
   border-radius:var(--r-lg); padding:1.25rem; margin-top:1rem;
   box-shadow:var(--sh); animation:fadeIn .2s ease both;
@@ -412,6 +411,34 @@ textarea { resize:vertical; min-height:80px }
 .steps li.on::before   { background:var(--primary); color:var(--on-p) }
 .steps li.done { color:var(--ok) }
 .steps li.done::before { background:var(--ok-lt); color:var(--ok); content:'✓' }
+
+/* ─── Seletor de datas ────────────────────────────────────────────── */
+.date-strip-wrap { position:relative; min-width:0 }
+.date-strip {
+  display:flex; gap:.5rem; overflow-x:auto; padding:.15rem .1rem .5rem;
+  scroll-snap-type:x proximity; scrollbar-width:none; overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch; min-width:0; max-width:100%;
+}
+.date-strip::-webkit-scrollbar { display:none }
+.date-btn {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  flex:0 0 auto; min-width:68px; min-height:56px; padding:.5rem .35rem;
+  border-radius:var(--r-sm); border:1.5px solid var(--line); background:var(--card);
+  color:var(--fg); cursor:pointer; scroll-snap-align:start;
+  transition:all var(--tr); -webkit-tap-highlight-color:transparent;
+}
+.date-btn .dw { font-size:.7rem; text-transform:uppercase; opacity:.7 }
+.date-btn .dd { font-size:.95rem; font-weight:700; margin-top:.15rem }
+.date-btn[aria-pressed="true"] { border-color:var(--primary); background:var(--primary-lt); color:var(--primary) }
+.date-btn[aria-pressed="true"] .dw { opacity:1 }
+.date-btn.more { border-style:dashed; color:var(--primary); min-width:76px }
+.strip-arrow {
+  display:none; position:absolute; top:calc(50% - .25rem); transform:translateY(-50%); z-index:1;
+  width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
+  background:var(--card); color:var(--fg); box-shadow:var(--sh-md); cursor:pointer; font-size:1.2rem; line-height:1;
+}
+.strip-arrow.left { left:-10px } .strip-arrow.right { right:-10px }
+@media (hover:hover) and (pointer:fine) { .strip-arrow { display:flex; align-items:center; justify-content:center } }
 
 /* ─── Configurações / Days ────────────────────────────────────────── */
 .dia {
