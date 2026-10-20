@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, RequireAuth, useAuth } from './auth/AuthContext'
+import { ThemeProvider, useTheme } from './lib/theme'
 import { supabase } from './lib/supabase'
 import Landing from './pages/Landing'
 const Auth = lazy(() => import('./pages/Auth'))
@@ -25,6 +26,39 @@ import {
   UserIcon,
   LogOutIcon,
 } from './components/Icons'
+
+/** Ícone sol para tema claro */
+function SunIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  )
+}
+
+/** Ícone lua para tema escuro */
+function MoonIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  )
+}
+
+function ThemeToggleBtn({ className = 'theme-toggle' }: { className?: string }) {
+  const { theme, toggle } = useTheme()
+  return (
+    <button
+      className={className}
+      onClick={toggle}
+      aria-label={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+      title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+    >
+      {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+    </button>
+  )
+}
 
 function Header() {
   const { session } = useAuth()
@@ -108,21 +142,24 @@ function Header() {
           )}
         </nav>
 
-        {/* Mobile Hamburger Button */}
-        <button
-          className="nav-toggle"
-          aria-label={open ? 'Fechar menu' : 'Abrir menu'}
-          aria-expanded={open}
-          onClick={() => setOpen(!open)}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {open ? (
-              <path d="M18 6L6 18M6 6l12 12" />
-            ) : (
-              <path d="M3 12h18M3 6h18M3 18h18" />
-            )}
-          </svg>
-        </button>
+        {/* Theme toggle + Mobile Hamburger */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', flexShrink: 0 }}>
+          <ThemeToggleBtn />
+          <button
+            className="nav-toggle"
+            aria-label={open ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {open ? (
+                <path d="M18 6L6 18M6 6l12 12" />
+              ) : (
+                <path d="M3 12h18M3 6h18M3 18h18" />
+              )}
+            </svg>
+          </button>
+        </div>
       </header>
 
       {/* Mobile Drawer */}
@@ -134,9 +171,12 @@ function Header() {
               <BrandLogoMark size={24} />
               <span>Schedia</span>
             </span>
-            <button className="icon-btn" onClick={close} aria-label="Fechar menu">
-              ✕
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem' }}>
+              <ThemeToggleBtn />
+              <button className="icon-btn" onClick={close} aria-label="Fechar menu">
+                ✕
+              </button>
+            </div>
           </div>
 
           {session ? (
@@ -190,32 +230,34 @@ const guard = (el: JSX.Element) => <RequireAuth>{el}</RequireAuth>
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Header />
-        <Suspense fallback={<div className="center" style={{ paddingTop: '4rem' }}><div className="spinner" /></div>}>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/n/:slug" element={<Negocio />} />
-          <Route path="/entrar" element={<Auth />} />
-          <Route path="/inicio" element={guard(<Inicio />)} />
-          <Route path="/hub" element={guard(<Hub />)} />
-          <Route path="/agendamentos" element={guard(<MeusAgendamentos />)} />
-          <Route path="/perfil" element={guard(<Perfil />)} />
-          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
-          <Route path="/painel" element={guard(<PainelSeletor />)} />
-          <Route path="/painel/novo" element={guard(<NovoNegocio />)} />
-          <Route path="/painel/:id" element={guard(<PainelLayout />)}>
-            <Route index element={<Navigate to="agenda" replace />} />
-            <Route path="agenda" element={<Agenda />} />
-            <Route path="bloqueios" element={<Bloqueios />} />
-            <Route path="servicos" element={<CatalogoCrud key="s" table="services" />} />
-            <Route path="produtos" element={<CatalogoCrud key="p" table="products" />} />
-            <Route path="configuracoes" element={<Configuracoes />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        </Suspense>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Header />
+          <Suspense fallback={<div className="center" style={{ paddingTop: '4rem' }}><div className="spinner" /></div>}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/n/:slug" element={<Negocio />} />
+            <Route path="/entrar" element={<Auth />} />
+            <Route path="/inicio" element={guard(<Inicio />)} />
+            <Route path="/hub" element={guard(<Hub />)} />
+            <Route path="/agendamentos" element={guard(<MeusAgendamentos />)} />
+            <Route path="/perfil" element={guard(<Perfil />)} />
+            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+            <Route path="/painel" element={guard(<PainelSeletor />)} />
+            <Route path="/painel/novo" element={guard(<NovoNegocio />)} />
+            <Route path="/painel/:id" element={guard(<PainelLayout />)}>
+              <Route index element={<Navigate to="agenda" replace />} />
+              <Route path="agenda" element={<Agenda />} />
+              <Route path="bloqueios" element={<Bloqueios />} />
+              <Route path="servicos" element={<CatalogoCrud key="s" table="services" />} />
+              <Route path="produtos" element={<CatalogoCrud key="p" table="products" />} />
+              <Route path="configuracoes" element={<Configuracoes />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          </Suspense>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

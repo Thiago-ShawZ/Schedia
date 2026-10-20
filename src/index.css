@@ -26,8 +26,9 @@
   --hh:   60px;
   color-scheme: light;
 }
+/* Tema escuro via preferência do sistema */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg:         #0d0b12;
     --bg-sub:     #17142d;
     --fg:         #f0ecfc;
@@ -47,6 +48,48 @@
     --sh-lg: 0 10px 40px rgba(0,0,0,.6);
     color-scheme: dark;
   }
+}
+/* Tema escuro forçado via toggle manual (data-theme) */
+[data-theme="dark"] {
+  --bg:         #0d0b12;
+  --bg-sub:     #17142d;
+  --fg:         #f0ecfc;
+  --muted:      #8b82a3;
+  --primary:    #a78bfa;
+  --primary-hv: #8b5cf6;
+  --primary-lt: #2d1f5e;
+  --on-p:       #0d0b12;
+  --card:       #17142d;
+  --line:       #2a2540;
+  --ok:         #10b981;  --ok-lt:   #022c22;
+  --warn:       #f59e0b;  --warn-lt: #431407;
+  --err:        #f87171;  --err-lt:  #3b0a0a;
+  --info:       #38bdf8;  --info-lt: #0c4a6e;
+  --sh:    0 1px 3px rgba(0,0,0,.3);
+  --sh-md: 0 4px 16px rgba(0,0,0,.5);
+  --sh-lg: 0 10px 40px rgba(0,0,0,.6);
+  color-scheme: dark;
+}
+/* Tema claro forçado via toggle manual (data-theme) — sobrescreve prefers-color-scheme */
+[data-theme="light"] {
+  --bg:         #faf8fd;
+  --bg-sub:     #f3f0fa;
+  --fg:         #1a1726;
+  --muted:      #6b6483;
+  --primary:    #7c3aed;
+  --primary-hv: #6d28d9;
+  --primary-lt: #ede9fe;
+  --on-p:       #ffffff;
+  --card:       #ffffff;
+  --line:       #e5e0f0;
+  --ok:         #059669;  --ok-lt:   #d1fae5;
+  --warn:       #d97706;  --warn-lt: #fef3c7;
+  --err:        #dc2626;  --err-lt:  #fee2e2;
+  --info:       #0284c7;  --info-lt: #e0f2fe;
+  --sh:    0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --sh-md: 0 4px 16px rgba(0,0,0,.09);
+  --sh-lg: 0 10px 40px rgba(0,0,0,.13);
+  color-scheme: light;
 }
 
 /* ─── Animations ──────────────────────────────────────────────────── */
@@ -83,7 +126,7 @@ main { max-width:960px; margin:0 auto; padding:1.5rem 1.25rem; animation:fadeIn 
 /* ─── Header ──────────────────────────────────────────────────────── */
 .top {
   position:sticky; top:0; z-index:100;
-  display:flex; justify-content:space-between; align-items:center;
+  display:flex; justify-content:space-between; align-items:center; gap:.5rem;
   padding:0 max(1.25rem, env(safe-area-inset-right)) 0 max(1.25rem, env(safe-area-inset-left));
   height:var(--hh); width:100%;
   background:color-mix(in srgb, var(--bg) 88%, transparent);
@@ -113,6 +156,16 @@ main { max-width:960px; margin:0 auto; padding:1.5rem 1.25rem; animation:fadeIn 
   -webkit-tap-highlight-color:transparent;
 }
 .nav-toggle:hover { background:var(--bg-sub) }
+/* Botão de tema claro/escuro */
+.theme-toggle {
+  display:inline-flex; align-items:center; justify-content:center;
+  background:none; border:1.5px solid var(--line); cursor:pointer;
+  color:var(--muted); padding:.35rem; border-radius:var(--r-sm);
+  min-width:36px; min-height:36px; flex-shrink:0;
+  transition:color var(--tr), background var(--tr), border-color var(--tr);
+  -webkit-tap-highlight-color:transparent;
+}
+.theme-toggle:hover { color:var(--primary); border-color:var(--primary); background:var(--primary-lt) }
 
 /* ─── Mobile Drawer ───────────────────────────────────────────────── */
 .mobile-drawer { display:none; position:fixed; inset:0; z-index:200 }
@@ -413,10 +466,17 @@ textarea { resize:vertical; min-height:80px }
 .steps li.done::before { background:var(--ok-lt); color:var(--ok); content:'✓' }
 
 /* ─── Seletor de datas ────────────────────────────────────────────── */
-.date-strip-wrap { position:relative; min-width:0 }
+.date-strip-wrap {
+  position:relative; min-width:0;
+  /* Espaço lateral para as setas não cobrirem datas */
+  padding:0 28px;
+}
+@media (max-width:420px) {
+  .date-strip-wrap { padding:0 }
+}
 .date-strip {
-  display:flex; gap:.5rem; overflow-x:auto; padding:.15rem .1rem .5rem;
-  scroll-snap-type:x proximity; scrollbar-width:none; overscroll-behavior-x:contain;
+  display:flex; gap:.45rem; overflow-x:auto; padding:.15rem .1rem .5rem;
+  scroll-snap-type:x mandatory; scrollbar-width:none; overscroll-behavior-x:contain;
   -webkit-overflow-scrolling:touch; min-width:0; max-width:100%;
 }
 .date-strip::-webkit-scrollbar { display:none }
@@ -433,12 +493,23 @@ textarea { resize:vertical; min-height:80px }
 .date-btn[aria-pressed="true"] .dw { opacity:1 }
 .date-btn.more { border-style:dashed; color:var(--primary); min-width:76px }
 .strip-arrow {
-  display:none; position:absolute; top:calc(50% - .25rem); transform:translateY(-50%); z-index:1;
-  width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
-  background:var(--card); color:var(--fg); box-shadow:var(--sh-md); cursor:pointer; font-size:1.2rem; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  position:absolute; top:calc(50% - .25rem); transform:translateY(-50%); z-index:1;
+  width:36px; height:36px; border-radius:50%; border:1px solid var(--line);
+  background:var(--card); color:var(--fg); box-shadow:var(--sh-md); cursor:pointer;
+  font-size:1.3rem; line-height:1; flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;
+  transition:background var(--tr), color var(--tr), box-shadow var(--tr);
 }
-.strip-arrow.left { left:-10px } .strip-arrow.right { right:-10px }
-@media (hover:hover) and (pointer:fine) { .strip-arrow { display:flex; align-items:center; justify-content:center } }
+.strip-arrow:hover { background:var(--primary-lt); color:var(--primary); box-shadow:var(--sh-lg) }
+.strip-arrow.left  { left:-14px }
+.strip-arrow.right { right:-14px }
+/* Em telas muito estreitas, embutimos as setas dentro do wrapper (sem negativo) */
+@media (max-width:420px) {
+  .strip-arrow.left  { left:0 }
+  .strip-arrow.right { right:0 }
+  .date-strip { padding-left:44px; padding-right:44px }
+}
 
 /* ─── Configurações / Days ────────────────────────────────────────── */
 .dia {

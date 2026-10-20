@@ -111,7 +111,7 @@ export default function Negocio() {
               biz.name.charAt(0).toUpperCase()
             )}
           </div>
-          <div style={{ flex: 1, minWidth: '220px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.35rem' }}>
               <span className="badge badge-info">
                 {biz.categories?.name ?? 'Estabelecimento'}

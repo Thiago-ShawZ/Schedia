@@ -43,8 +43,15 @@ export default function SlotPicker({
     )
   }, [cfg, horizon])
   const stripRef = useRef<HTMLDivElement>(null)
-  const scrollStrip = (dir: 1 | -1) =>
-    stripRef.current?.scrollBy({ left: dir * stripRef.current.clientWidth * 0.8, behavior: 'smooth' })
+  // Rola ~3 cards por clique (cada card tem min-width:68px + gap:~7px ≈ 75px)
+  const scrollStrip = (dir: 1 | -1) => {
+    const el = stripRef.current
+    if (!el) return
+    // Usa a largura de um botão de data como unidade de scroll
+    const btn = el.querySelector<HTMLButtonElement>('.date-btn')
+    const unit = btn ? btn.offsetWidth + 8 : 80 // 8px ≈ gap
+    el.scrollBy({ left: dir * unit * 3, behavior: 'smooth' })
+  }
 
   const [date, setDate] = useState(days[0] ?? '')
   const [slots, setSlots] = useState<Slot[] | null>(null)
