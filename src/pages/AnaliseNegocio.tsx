@@ -294,52 +294,63 @@ export default function AnaliseNegocio() {
       return setMsg('Adicione pelo menos 1 foto do estabelecimento ou espaço de atendimento.')
     }
 
-    if (!id) {
-      return setMsg('Negócio não identificado na URL.')
-    }
-
-    // 0. Garante sessão ativa e com JWT válido antes das requisições ao Storage
-    const { data: sessionData, error: sessionErr } = await supabase.auth.getSession()
-    if (sessionErr || !sessionData?.session) {
-      return setMsg('Sua sessão expirou. Por favor, recarregue a página ou faça login novamente.')
-    }
-
-    let activeSession = sessionData.session
-    const expiresAt = activeSession.expires_at ? activeSession.expires_at * 1000 : 0
-    if (expiresAt > 0 && expiresAt - Date.now() < 120000) {
-      const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession()
-      if (refreshErr || !refreshData?.session) {
-        return setMsg('Sua sessão expirou. Por favor, saia e faça login novamente para reautenticar.')
+    // 0. SEMPRE força refresh do token antes de qualquer operação no Storage
+    const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession()
+    if (refreshErr || !refreshData?.session) {
+      // Fallback: tenta pegar sessão atual
+      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession()
+      if (sessionErr || !sessionData?.session) {
+        return setMsg('Sessão expirada. Por favor, saia e entre novamente para reautenticar.')
       }
-      activeSession = refreshData.session
     }
 
-    const currentUserId = activeSession.user.id
+    const { data: sessionFinal } = await supabase.auth.getSession()
+    const currentUserId = sessionFinal?.session?.user?.id
     if (!currentUserId) {
-      return setMsg('Usuário não autenticado.')
+      return setMsg('Usuário não autenticado. Recarregue a página.')
     }
 
     setBusy(true)
 
     try {
-      // 1. Upload das fotos no bucket business-applications
+      // 1. Upload das fotos usando Signed Upload URLs (mais robusto que upload direto)
       const caminhosStorage: string[] = []
       for (let i = 0; i < fotos.length; i++) {
         const item = fotos[i]
-        const extensao = 'jpg'
-        const path = `${currentUserId}/${id}/${Date.now()}-${i + 1}-${Math.random().toString(36).slice(2, 7)}.${extensao}`
+        const path = `${currentUserId}/${id}/${Date.now()}-${i + 1}-${Math.random().toString(36).slice(2, 7)}.jpg`
 
+        // Cria URL assinada para upload (verifica RLS no servidor)
+        const { data: signedData, error: signedErr } = await supabase.storage
+          .from('business-applications')
+          .createSignedUploadUrl(path)
+
+        if (signedErr || !signedData) {
+          console.error(`Erro ao criar URL assinada para foto ${i + 1}:`, signedErr)
+          const errDetail = JSON.stringify({
+            msg: signedErr?.message,
+            status: (signedErr as any)?.status,
+            statusCode: (signedErr as any)?.statusCode,
+            errCode: (signedErr as any)?.error,
+          })
+          throw new Error(`Falha ao preparar envio da foto ${i + 1}: ${signedErr?.message || 'erro desconhecido'} — ${errDetail}`)
+        }
+
+        // Faz upload usando a URL assinada (não exige JWT válido no momento do upload)
         const { error: uploadError } = await supabase.storage
           .from('business-applications')
-          .upload(path, item.file, {
+          .uploadToSignedUrl(path, signedData.token, item.file, {
             contentType: 'image/jpeg',
-            upsert: false,
           })
 
         if (uploadError) {
           console.error(`Erro ao enviar foto ${i + 1}:`, uploadError)
-          const detalhe = (uploadError as any).error || (uploadError as any).statusCode || uploadError.message
-          throw new Error(`Erro ao enviar foto ${i + 1}: ${uploadError.message}${detalhe && detalhe !== uploadError.message ? ` (${detalhe})` : ''}`)
+          const errDetail = JSON.stringify({
+            msg: uploadError?.message,
+            status: (uploadError as any)?.status,
+            statusCode: (uploadError as any)?.statusCode,
+            errCode: (uploadError as any)?.error,
+          })
+          throw new Error(`Erro ao enviar foto ${i + 1}: ${uploadError.message} — ${errDetail}`)
         }
         caminhosStorage.push(path)
       }
@@ -365,7 +376,7 @@ export default function AnaliseNegocio() {
       })
 
       if (insertError) {
-        throw new Error(insertError.message)
+        throw new Error(`Erro ao salvar solicitação: ${insertError.message} (${insertError.code})`)
       }
 
       // Sucesso: encaminha para cadastro de serviços
