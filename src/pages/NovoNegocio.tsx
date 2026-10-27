@@ -47,7 +47,7 @@ export default function NovoNegocio() {
           : error.message
       )
     }
-    nav(`/painel/${id}/servicos`)
+    nav(`/painel/${id}/analise`)
   }
 
   return (
@@ -63,9 +63,12 @@ export default function NovoNegocio() {
 
       <div className="card" style={{ padding: '2rem 1.75rem', boxShadow: 'var(--sh-md)' }}>
         <div style={{ marginBottom: '1.5rem' }}>
+          <span className="badge badge-info" style={{ fontWeight: 600, marginBottom: '.5rem', display: 'inline-block' }}>
+            Etapa 1 de 2
+          </span>
           <h1 style={{ fontSize: '1.35rem', margin: 0 }}>Cadastrar novo negócio</h1>
           <p style={{ color: 'var(--muted)', fontSize: '.88rem', margin: '.3rem 0 0' }}>
-            Configure seu perfil comercial para começar a divulgar seus serviços e receber agendamentos.
+            Configure as informações iniciais do seu perfil comercial.
           </p>
         </div>
 
@@ -166,7 +169,7 @@ export default function NovoNegocio() {
 
           <div className="actions" style={{ marginTop: '.75rem' }}>
             <button className="btn" style={{ width: '100%', padding: '.75rem' }} disabled={busy}>
-              {busy ? 'Criando negócio...' : 'Continuar para cadastro de serviços →'}
+              {busy ? 'Criando negócio...' : 'Continuar para dados de análise (Etapa 2) →'}
             </button>
           </div>
         </form>

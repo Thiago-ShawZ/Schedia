@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import ImageUploader from '../components/ImageUploader'
+import { AlertCircleIcon, CheckIcon } from '../components/Icons'
 
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 type Dia = { on: boolean; start: string; end: string }
@@ -10,6 +11,7 @@ const ERROS: Record<string, string> = {
   publish_needs_category: 'Escolha uma categoria e salve antes de publicar.',
   publish_needs_service: 'Cadastre ao menos um serviço ativo antes de publicar.',
   publish_needs_hours: 'Defina e salve os horários de funcionamento antes de publicar.',
+  publish_needs_approval: 'A publicação no Hub exige que o negócio tenha sido aprovado pela equipe do Schedia.',
 }
 
 export default function Configuracoes() {
@@ -24,7 +26,9 @@ export default function Configuracoes() {
     logo_url: '',
     phone: '',
     is_published: false,
+    approval_status: 'pending' as 'pending' | 'approved' | 'rejected',
   })
+  const [latestApp, setLatestApp] = useState<{ id: string; status: string; review_comment: string | null } | null>(null)
   const [cfg, setCfg] = useState({ slot_step_min: 30, min_cancel_hours: 24 })
   const [dias, setDias] = useState<Dia[]>(DIAS.map(() => dia0))
   const [msg, setMsg] = useState('')
@@ -32,10 +36,17 @@ export default function Configuracoes() {
 
   useEffect(() => {
     ;(async () => {
-      const [c, b, s] = await Promise.all([
+      const [c, b, s, app] = await Promise.all([
         supabase.from('categories').select('id,name').order('name'),
         supabase.from('businesses').select('*').eq('id', id).single(),
         supabase.from('business_settings').select('*').eq('business_id', id).single(),
+        supabase
+          .from('business_applications')
+          .select('id,status,review_comment')
+          .eq('business_id', id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ])
       setCats(c.data ?? [])
       if (b.data) {
@@ -48,7 +59,11 @@ export default function Configuracoes() {
           logo_url: b.data.logo_url ?? '',
           phone: b.data.phone ?? '',
           is_published: b.data.is_published,
+          approval_status: b.data.approval_status ?? 'approved',
         })
+      }
+      if (app.data) {
+        setLatestApp(app.data)
       }
       if (s.data) {
         setCfg({
@@ -112,6 +127,8 @@ export default function Configuracoes() {
     setMsg(next ? 'Negócio publicado no Hub com sucesso.' : 'Negócio despublicado do Hub.')
   }
 
+  const isApproved = biz.approval_status === 'approved'
+
   return (
     <>
       <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -121,7 +138,17 @@ export default function Configuracoes() {
             Atualize dados cadastrais, logotipo, horários e regras de agendamento.
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem', flexWrap: 'wrap' }}>
+          {isApproved ? (
+            <span className="badge badge-ok">Aprovado</span>
+          ) : biz.approval_status === 'rejected' ? (
+            <span className="badge badge-danger">Reprovado</span>
+          ) : latestApp ? (
+            <span className="badge badge-info">Em análise</span>
+          ) : (
+            <span className="badge badge-warning">Análise incompleta</span>
+          )}
+
           <span className={`badge ${biz.is_published ? 'badge-ok' : 'badge-muted'}`}>
             {biz.is_published ? 'Publicado no Hub' : 'Rascunho / Oculto'}
           </span>
@@ -129,12 +156,101 @@ export default function Configuracoes() {
             type="button"
             className={`btn sm ${biz.is_published ? 'ghost' : ''}`}
             onClick={publicar}
-            disabled={busy}
+            disabled={busy || (!biz.is_published && !isApproved)}
+            title={!isApproved ? 'A publicação no Hub exige aprovação prévia da equipe.' : undefined}
           >
             {biz.is_published ? 'Despublicar do Hub' : 'Publicar no Hub'}
           </button>
         </div>
       </div>
+
+      {/* Banner de status da moderação */}
+      {!isApproved && (
+        <div style={{ marginBottom: '1.25rem' }}>
+          {biz.approval_status === 'rejected' ? (
+            <div
+              className="card"
+              style={{
+                borderColor: '#f87171',
+                background: 'rgba(239, 68, 68, 0.08)',
+                padding: '1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '.5rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', color: '#dc2626', fontWeight: 600, fontSize: '.9rem' }}>
+                <AlertCircleIcon size={18} />
+                <span>Cadastro reprovado pela moderação</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '.86rem', color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
+                {latestApp?.review_comment || 'Sua solicitação de cadastro não foi aprovada.'}
+              </p>
+              <div style={{ marginTop: '.35rem' }}>
+                <Link to={`/painel/${id}/analise`} className="btn sm">
+                  Corrigir e reenviar solicitação →
+                </Link>
+              </div>
+            </div>
+          ) : latestApp ? (
+            <div
+              className="card"
+              style={{
+                borderColor: '#60a5fa',
+                background: 'rgba(59, 130, 246, 0.08)',
+                padding: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '.75rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem' }}>
+                <CheckIcon size={18} style={{ color: '#2563eb' }} />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '.88rem', color: '#1d4ed8' }}>
+                    Cadastro em análise pela equipe do Schedia
+                  </div>
+                  <div style={{ fontSize: '.8rem', color: 'var(--muted)' }}>
+                    Você já pode cadastrar seus serviços e horários. A publicação no Hub será liberada após a aprovação.
+                  </div>
+                </div>
+              </div>
+              <Link to={`/painel/${id}/analise`} className="link" style={{ fontSize: '.82rem' }}>
+                Ver dados enviados
+              </Link>
+            </div>
+          ) : (
+            <div
+              className="card"
+              style={{
+                borderColor: '#fbbf24',
+                background: 'rgba(245, 158, 11, 0.08)',
+                padding: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '.75rem',
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '.88rem', color: '#b45309' }}>
+                  Complete o envio para análise
+                </div>
+                <div style={{ fontSize: '.8rem', color: 'var(--muted)' }}>
+                  Envie as fotos e dados do estabelecimento para que a equipe do Schedia possa aprovar sua publicação no Hub.
+                </div>
+              </div>
+              <Link to={`/painel/${id}/analise`} className="btn sm">
+                Completar envio para análise →
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
 
       <form className="form" onSubmit={salvar}>
         {/* Section 1: Business Details & Logo */}

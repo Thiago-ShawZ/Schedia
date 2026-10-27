@@ -19,6 +19,7 @@ const MeusAgendamentos = lazy(() => import('./pages/MeusAgendamentos'))
 const Perfil = lazy(() => import('./pages/Perfil'))
 const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha'))
 const Aprovadores = lazy(() => import('./pages/Aprovadores'))
+const AnaliseNegocio = lazy(() => import('./pages/AnaliseNegocio'))
 import {
   BrandLogoMark,
   SearchIcon,
@@ -262,6 +263,7 @@ export default function App() {
               <Route path="servicos" element={<CatalogoCrud key="s" table="services" />} />
               <Route path="produtos" element={<CatalogoCrud key="p" table="products" />} />
               <Route path="configuracoes" element={<Configuracoes />} />
+              <Route path="analise" element={<AnaliseNegocio />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
