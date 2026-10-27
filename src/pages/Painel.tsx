@@ -16,7 +16,19 @@ import {
 type M = {
   business_id: string
   role: string
-  businesses: { name: string; slug: string; city: string | null; logo_url?: string | null } | null
+  businesses: {
+    name: string
+    slug: string
+    city: string | null
+    logo_url?: string | null
+    approval_status?: 'pending' | 'approved' | 'rejected'
+    is_published?: boolean
+  } | null
+  application?: {
+    id: string
+    status: string
+    review_comment: string | null
+  } | null
 }
 
 export function PainelSeletor() {
@@ -24,14 +36,41 @@ export function PainelSeletor() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase
-      .from('business_memberships')
-      .select('business_id,role,businesses(name,slug,city,logo_url)')
-      .eq('status', 'active')
-      .then(({ data }) => {
-        setItems((data as unknown as M[]) ?? [])
-        setLoading(false)
-      })
+    ;(async () => {
+      const { data: mems } = await supabase
+        .from('business_memberships')
+        .select('business_id,role,businesses(name,slug,city,logo_url,approval_status,is_published)')
+        .eq('status', 'active')
+
+      if (mems && mems.length > 0) {
+        const bizIds = mems.map((m: any) => m.business_id)
+        const { data: apps } = await supabase
+          .from('business_applications')
+          .select('id,business_id,status,review_comment,created_at')
+          .in('business_id', bizIds)
+          .order('created_at', { ascending: false })
+
+        const appMap = new Map<string, any>()
+        if (apps) {
+          for (const a of apps) {
+            if (!appMap.has(a.business_id)) {
+              appMap.set(a.business_id, a)
+            }
+          }
+        }
+
+        const merged: M[] = mems.map((m: any) => ({
+          business_id: m.business_id,
+          role: m.role,
+          businesses: m.businesses,
+          application: appMap.get(m.business_id) || null,
+        }))
+        setItems(merged)
+      } else {
+        setItems([])
+      }
+      setLoading(false)
+    })()
   }, [])
 
   return (
@@ -68,56 +107,120 @@ export function PainelSeletor() {
         </div>
       ) : (
         <section className="grid">
-          {items.map(m => (
-            <Link
-              className="card"
-              key={m.business_id}
-              to={`/painel/${m.business_id}`}
-              style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.75rem' }}>
-                  <span className="badge badge-info">
-                    {m.role === 'owner' ? 'Proprietário' : m.role}
-                  </span>
-                  {m.businesses?.city && (
-                    <small style={{ color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '.25rem', fontSize: '.78rem' }}>
-                      <LocationIcon size={12} />
-                      {m.businesses.city}
-                    </small>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '.85rem', alignItems: 'center' }}>
-                  <div className="avatar" style={{ width: '42px', height: '42px', fontSize: '1rem' }}>
-                    {m.businesses?.logo_url ? (
-                      <img src={m.businesses.logo_url} alt={m.businesses.name} className="avatar-img" loading="lazy" decoding="async" />
-                    ) : (
-                      m.businesses?.name?.charAt(0) ?? 'B'
+          {items.map(m => {
+            const status = m.businesses?.approval_status ?? 'approved'
+            const isApproved = status === 'approved'
+            const isRejected = status === 'rejected'
+            const isPending = status === 'pending'
+            const hasApp = !!m.application
+
+            return (
+              <div
+                className="card"
+                key={m.business_id}
+                style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '1rem' }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.75rem', flexWrap: 'wrap', gap: '.4rem' }}>
+                    <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center' }}>
+                      <span className="badge badge-info">
+                        {m.role === 'owner' ? 'Proprietário' : m.role}
+                      </span>
+                      {isApproved ? (
+                        <span className="badge badge-ok">Aprovado</span>
+                      ) : isRejected ? (
+                        <span className="badge badge-danger">Reprovado</span>
+                      ) : hasApp ? (
+                        <span className="badge badge-info">Em análise</span>
+                      ) : (
+                        <span className="badge badge-warning">Incompleto</span>
+                      )}
+                    </div>
+                    {m.businesses?.city && (
+                      <small style={{ color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '.25rem', fontSize: '.78rem' }}>
+                        <LocationIcon size={12} />
+                        {m.businesses.city}
+                      </small>
                     )}
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <h2 style={{ margin: 0, fontSize: '1.05rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {m.businesses?.name}
-                    </h2>
-                    <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
-                      schedia.app/n/{m.businesses?.slug}
-                    </small>
-                  </div>
+
+                  <Link to={`/painel/${m.business_id}`} style={{ display: 'flex', gap: '.85rem', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
+                    <div className="avatar" style={{ width: '42px', height: '42px', fontSize: '1rem', flexShrink: 0 }}>
+                      {m.businesses?.logo_url ? (
+                        <img src={m.businesses.logo_url} alt={m.businesses.name} className="avatar-img" loading="lazy" decoding="async" />
+                      ) : (
+                        m.businesses?.name?.charAt(0) ?? 'B'
+                      )}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <h2 style={{ margin: 0, fontSize: '1.05rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {m.businesses?.name}
+                      </h2>
+                      <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
+                        schedia.app/n/{m.businesses?.slug}
+                      </small>
+                    </div>
+                  </Link>
+
+                  {/* Alerta de reprovação */}
+                  {isRejected && (
+                    <div
+                      style={{
+                        marginTop: '.85rem',
+                        padding: '.65rem .8rem',
+                        borderRadius: 'var(--r-md)',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid #f87171',
+                        fontSize: '.78rem',
+                      }}
+                    >
+                      <strong style={{ color: '#dc2626' }}>Cadastro reprovado:</strong>
+                      <p style={{ margin: '.2rem 0 .5rem', color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
+                        {m.application?.review_comment || 'Verifique as pendências apontadas pela equipe.'}
+                      </p>
+                      <Link to={`/painel/${m.business_id}/analise`} className="btn sm" style={{ padding: '.25rem .6rem', fontSize: '.75rem' }}>
+                        Corrigir e reenviar →
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Alerta de incompleto */}
+                  {isPending && !hasApp && (
+                    <div
+                      style={{
+                        marginTop: '.85rem',
+                        padding: '.65rem .8rem',
+                        borderRadius: 'var(--r-md)',
+                        background: 'rgba(245, 158, 11, 0.08)',
+                        border: '1px solid #fbbf24',
+                        fontSize: '.78rem',
+                      }}
+                    >
+                      <strong style={{ color: '#b45309' }}>Complete o envio para análise:</strong>
+                      <p style={{ margin: '.2rem 0 .5rem', color: 'var(--text)' }}>
+                        Envie fotos e endereço para que o Schedia possa avaliar seu negócio.
+                      </p>
+                      <Link to={`/painel/${m.business_id}/analise`} className="btn sm" style={{ padding: '.25rem .6rem', fontSize: '.75rem' }}>
+                        Completar envio →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ paddingTop: '.75rem', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Link to={`/painel/${m.business_id}`} style={{ fontSize: '.84rem', color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
+                    Acessar painel →
+                  </Link>
                 </div>
               </div>
-
-              <div style={{ marginTop: '1.25rem', paddingTop: '.75rem', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '.84rem', color: 'var(--primary)', fontWeight: 600 }}>
-                  Acessar painel →
-                </span>
-              </div>
-            </Link>
-          ))}
+            )
+          })}
         </section>
       )}
     </main>
   )
 }
+
 
 const navItems = [
   { path: 'agenda', label: 'Agenda', Icon: CalendarIcon },

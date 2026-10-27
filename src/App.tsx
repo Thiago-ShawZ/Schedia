@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes } from 'react-router-dom'
-import { AuthProvider, RequireAuth, useAuth } from './auth/AuthContext'
+import { AuthProvider, RequireAuth, RequireApprover, useAuth } from './auth/AuthContext'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { supabase } from './lib/supabase'
 import Landing from './pages/Landing'
@@ -18,6 +18,8 @@ const Bloqueios = lazy(() => import('./pages/Bloqueios'))
 const MeusAgendamentos = lazy(() => import('./pages/MeusAgendamentos'))
 const Perfil = lazy(() => import('./pages/Perfil'))
 const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha'))
+const Aprovadores = lazy(() => import('./pages/Aprovadores'))
+const AnaliseNegocio = lazy(() => import('./pages/AnaliseNegocio'))
 import {
   BrandLogoMark,
   SearchIcon,
@@ -25,6 +27,7 @@ import {
   BuildingIcon,
   UserIcon,
   LogOutIcon,
+  ShieldCheckIcon,
 } from './components/Icons'
 
 /** Ícone sol para tema claro */
@@ -61,7 +64,7 @@ function ThemeToggleBtn({ className = 'theme-toggle' }: { className?: string }) 
 }
 
 function Header() {
-  const { session } = useAuth()
+  const { session, isApprover } = useAuth()
   const [open, setOpen] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const close = () => setOpen(false)
@@ -117,6 +120,7 @@ function Header() {
               <NavLink to="/hub">Descobrir</NavLink>
               <NavLink to="/agendamentos">Agendamentos</NavLink>
               <NavLink to="/painel">Meus Negócios</NavLink>
+              {isApprover && <NavLink to="/aprovadores">Aprovadores</NavLink>}
               <NavLink to="/perfil" style={{ display: 'inline-flex', alignItems: 'center', gap: '.4rem' }}>
                 {avatarUrl ? (
                   <img
@@ -193,6 +197,12 @@ function Header() {
                 <BuildingIcon size={17} style={{ color: 'var(--muted)' }} />
                 <span>Gestão / Negócios</span>
               </NavLink>
+              {isApprover && (
+                <NavLink to="/aprovadores" onClick={close}>
+                  <ShieldCheckIcon size={17} style={{ color: 'var(--muted)' }} />
+                  <span>Aprovadores</span>
+                </NavLink>
+              )}
               <NavLink to="/perfil" onClick={close}>
                 <UserIcon size={17} style={{ color: 'var(--muted)' }} />
                 <span>Meu Perfil</span>
@@ -243,6 +253,7 @@ export default function App() {
             <Route path="/agendamentos" element={guard(<MeusAgendamentos />)} />
             <Route path="/perfil" element={guard(<Perfil />)} />
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+            <Route path="/aprovadores" element={<RequireApprover><Aprovadores /></RequireApprover>} />
             <Route path="/painel" element={guard(<PainelSeletor />)} />
             <Route path="/painel/novo" element={guard(<NovoNegocio />)} />
             <Route path="/painel/:id" element={guard(<PainelLayout />)}>
@@ -252,6 +263,7 @@ export default function App() {
               <Route path="servicos" element={<CatalogoCrud key="s" table="services" />} />
               <Route path="produtos" element={<CatalogoCrud key="p" table="products" />} />
               <Route path="configuracoes" element={<Configuracoes />} />
+              <Route path="analise" element={<AnaliseNegocio />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
