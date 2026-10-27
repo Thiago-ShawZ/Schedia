@@ -48,7 +48,7 @@ export function validarCNPJ(cnpj: string): boolean {
   return resultado === Number(digitos.charAt(1))
 }
 
-function redimensionarImagem(file: File, maxDim = 1280, quality = 0.82): Promise<Blob> {
+function redimensionarImagem(file: File, maxDim = 1280, initialQuality = 0.82): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onerror = reject
@@ -72,14 +72,25 @@ function redimensionarImagem(file: File, maxDim = 1280, quality = 0.82): Promise
         const ctx = canvas.getContext('2d')
         if (!ctx) return reject(new Error('Canvas 2D context indisponível'))
         ctx.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(
-          blob => {
-            if (blob) resolve(blob)
-            else reject(new Error('Falha ao gerar blob da imagem'))
-          },
-          'image/jpeg',
-          quality
-        )
+
+        const tentarComprimir = (q: number) => {
+          canvas.toBlob(
+            blob => {
+              if (!blob) return reject(new Error('Falha ao gerar imagem compactada'))
+              // O bucket tem limite de 2MB (2097152 bytes). Mantemos abaixo de 1.8MB com margem segura.
+              if (blob.size > 1.8 * 1024 * 1024 && q > 0.4) {
+                return tentarComprimir(Math.max(0.4, Number((q - 0.15).toFixed(2))))
+              }
+              const safeName = (file.name || 'foto.jpg').replace(/\.[^/.]+$/, '') + '.jpg'
+              const safeFile = new File([blob], safeName, { type: 'image/jpeg' })
+              resolve(safeFile)
+            },
+            'image/jpeg',
+            q
+          )
+        }
+
+        tentarComprimir(initialQuality)
       }
       img.src = reader.result as string
     }
@@ -89,7 +100,7 @@ function redimensionarImagem(file: File, maxDim = 1280, quality = 0.82): Promise
 
 type FotoItem = {
   id: string
-  blob: Blob
+  file: File
   previewUrl: string
   name: string
 }
@@ -232,11 +243,11 @@ export default function AnaliseNegocio() {
     try {
       const novosItens: FotoItem[] = []
       for (const file of selecionados) {
-        const blob = await redimensionarImagem(file, 1280, 0.82)
-        const previewUrl = URL.createObjectURL(blob)
+        const compressedFile = await redimensionarImagem(file, 1280, 0.82)
+        const previewUrl = URL.createObjectURL(compressedFile)
         novosItens.push({
           id: crypto.randomUUID(),
-          blob,
+          file: compressedFile,
           previewUrl,
           name: file.name,
         })
@@ -283,8 +294,29 @@ export default function AnaliseNegocio() {
       return setMsg('Adicione pelo menos 1 foto do estabelecimento ou espaço de atendimento.')
     }
 
-    if (!userId || !id) {
-      return setMsg('Sessão expirada ou negócio não identificado.')
+    if (!id) {
+      return setMsg('Negócio não identificado na URL.')
+    }
+
+    // 0. Garante sessão ativa e com JWT válido antes das requisições ao Storage
+    const { data: sessionData, error: sessionErr } = await supabase.auth.getSession()
+    if (sessionErr || !sessionData?.session) {
+      return setMsg('Sua sessão expirou. Por favor, recarregue a página ou faça login novamente.')
+    }
+
+    let activeSession = sessionData.session
+    const expiresAt = activeSession.expires_at ? activeSession.expires_at * 1000 : 0
+    if (expiresAt > 0 && expiresAt - Date.now() < 120000) {
+      const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession()
+      if (refreshErr || !refreshData?.session) {
+        return setMsg('Sua sessão expirou. Por favor, saia e faça login novamente para reautenticar.')
+      }
+      activeSession = refreshData.session
+    }
+
+    const currentUserId = activeSession.user.id
+    if (!currentUserId) {
+      return setMsg('Usuário não autenticado.')
     }
 
     setBusy(true)
@@ -295,17 +327,19 @@ export default function AnaliseNegocio() {
       for (let i = 0; i < fotos.length; i++) {
         const item = fotos[i]
         const extensao = 'jpg'
-        const path = `${userId}/${id}/${Date.now()}-${i + 1}-${Math.random().toString(36).slice(2, 7)}.${extensao}`
+        const path = `${currentUserId}/${id}/${Date.now()}-${i + 1}-${Math.random().toString(36).slice(2, 7)}.${extensao}`
 
         const { error: uploadError } = await supabase.storage
           .from('business-applications')
-          .upload(path, item.blob, {
+          .upload(path, item.file, {
             contentType: 'image/jpeg',
             upsert: false,
           })
 
         if (uploadError) {
-          throw new Error(`Erro ao enviar foto ${i + 1}: ${uploadError.message}`)
+          console.error(`Erro ao enviar foto ${i + 1}:`, uploadError)
+          const detalhe = (uploadError as any).error || (uploadError as any).statusCode || uploadError.message
+          throw new Error(`Erro ao enviar foto ${i + 1}: ${uploadError.message}${detalhe && detalhe !== uploadError.message ? ` (${detalhe})` : ''}`)
         }
         caminhosStorage.push(path)
       }
@@ -313,7 +347,7 @@ export default function AnaliseNegocio() {
       // 2. Inserção na tabela business_applications
       const { error: insertError } = await supabase.from('business_applications').insert({
         business_id: id,
-        submitted_by: userId,
+        submitted_by: currentUserId,
         trade_name: tradeName.trim(),
         cnpj: cnpjLimpo || null,
         zip_code: cepLimpo,
@@ -339,6 +373,7 @@ export default function AnaliseNegocio() {
         state: { flash: 'Solicitação enviada para análise com sucesso! Configure agora seus serviços.' },
       })
     } catch (err: unknown) {
+      console.error('Falha ao submeter análise:', err)
       const erroTexto = err instanceof Error ? err.message : 'Falha ao enviar solicitação.'
       setMsg(erroTexto)
       setBusy(false)
