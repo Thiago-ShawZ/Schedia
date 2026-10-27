@@ -27,10 +27,49 @@ Ele cria o "Studio Demo" (serviços, produtos, horários, publicado) vinculado a
 - **Cliente:** Hub → Studio Demo → Agendar → escolher horário → confirmar → *Meus agendamentos* (reagendar/cancelar).
 - **Profissional:** *Meus negócios* → Agenda (concluir, faltou, cancelar), Bloqueios, Serviços, Produtos, Configurações.
 
+## Perfil de Aprovadores e Moderação de Negócios (Fase 8)
+
+O Schedia conta com um fluxo de homologação para garantir a qualidade e segurança dos estabelecimentos disponíveis no Hub:
+
+1. **Permissão de Aprovador (`platform_approvers`):**
+   - É uma permissão concedida no banco de dados para administradores da plataforma.
+   - Não altera a tabela `profiles` e utiliza RLS estrita sem escrita pública.
+   - Usuários aprovadores visualizam a aba e rota exclusiva **/aprovadores**.
+
+2. **Como se cadastrar como Aprovador:**
+   Execute no **SQL Editor** do Supabase:
+   ```sql
+   insert into public.platform_approvers (user_id)
+   select id from auth.users
+   where email in ('seu-email@dominio.com');
+   ```
+
+3. **Fluxo de Cadastro e Análise em 2 Etapas:**
+   - **Etapa 1 (`/painel/novo`):** Cadastro dos dados cadastrais básicos. O negócio nasce com status `pending` e despublicado.
+   - **Etapa 2 (`/painel/:id/analise`):** Envio dos dados confidenciais de moderação:
+     - Nome fantasia e CNPJ (opcional com validação matemática de dígitos verificadores).
+     - Endereço físico completo e CEP com auto-preenchimento.
+     - Faixa de faturamento mensal estimada, descrição das instalações e Instagram.
+     - **1 a 6 fotos:** enviadas diretamente ao bucket privado `business-applications` com redimensionamento no cliente (~1280 px).
+   - **Moderação (`/aprovadores`):**
+     - Aprovadores avaliam a solicitação com visualização de fotos via URLs assinadas de curta duração (5 min).
+     - **Aprovação:** negócio marcado como `approved` (e publicado automaticamente no Hub se já possuir categoria, serviço ativo e horários).
+     - **Reprovação:** exige comentário fundamentado (mínimo 10 caracteres). O dono visualiza o motivo no painel e pode corrigir e reenviar.
+
+4. **Validação e Testes Automatizados no Banco:**
+   Execute o script [supabase/tests/aprovadores_verificacao.sql](file:///c:/Users/thago/Downloads/schedia-fase4/schedia/supabase/tests/aprovadores_verificacao.sql) no SQL Editor do Supabase. Ele simula chamadas como usuário comum, dono de negócio e aprovador (com rollback automático ao final).
+
+5. **Rollback da Fase 8 (se necessário):**
+   Execute [supabase/migrations/0008_rollback.sql](file:///c:/Users/thago/Downloads/schedia-fase4/schedia/supabase/migrations/0008_rollback.sql) no SQL Editor. O script remove triggers, RPCs, bucket e tabelas de análise, restaurando a política original `biz_insert`.
+
+---
+
 ## Fases do Projeto
 - [x] 1 Base: schema, RLS, anti-sobreposição, auth, landing, hub
 - [x] 2 Painel: negócio, serviços, produtos, configurações/horários
 - [x] 3 Página pública, disponibilidade, reserva em 4 etapas
 - [x] 4 Agenda do profissional, bloqueios, histórico, cancelar/reagendar, perfil, redefinição de senha
 - [x] 5 UX/UI Redesign: Design System v2, Responsividade Mobile (Drawer), Dashboard previsto × realizado, acessibilidade
+- [x] 8 Perfil de Aprovadores e fluxo de aprovação de novos negócios
 - [ ] 6 Google Agenda e notificações automáticas
+
