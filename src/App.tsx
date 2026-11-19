@@ -32,6 +32,8 @@ import {
   ExternalLinkIcon,
 } from './components/Icons'
 import { NotificationsBell } from './components/NotificationsBell'
+import { SchediaAssistProvider } from './context/SchediaAssistContext'
+import SchediaAssist from './components/SchediaAssist'
 
 /** Ícone sol para tema claro */
 function SunIcon() {
@@ -299,32 +301,35 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <Header />
-          <Suspense fallback={<div className="center" style={{ paddingTop: '4rem' }}><div className="spinner" /></div>}>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/n/:slug" element={<Negocio />} />
-            <Route path="/entrar" element={<Auth />} />
-            <Route path="/inicio" element={guard(<Inicio />)} />
-            <Route path="/hub" element={guard(<Hub />)} />
-            <Route path="/agendamentos" element={guard(<MeusAgendamentos />)} />
-            <Route path="/perfil" element={guard(<Perfil />)} />
-            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
-            <Route path="/aprovadores" element={<RequireApprover><Aprovadores /></RequireApprover>} />
-            <Route path="/painel" element={guard(<PainelSeletor />)} />
-            <Route path="/painel/novo" element={guard(<NovoNegocio />)} />
-            <Route path="/painel/:id" element={guard(<PainelLayout />)}>
-              <Route index element={<Navigate to="agenda" replace />} />
-              <Route path="agenda" element={<Agenda />} />
-              <Route path="bloqueios" element={<Bloqueios />} />
-              <Route path="servicos" element={<CatalogoCrud key="s" table="services" />} />
-              <Route path="produtos" element={<CatalogoCrud key="p" table="products" />} />
-              <Route path="configuracoes" element={<Configuracoes />} />
-              <Route path="analise" element={<AnaliseNegocio />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          </Suspense>
+          <SchediaAssistProvider>
+            <Header />
+            <Suspense fallback={<div className="center" style={{ paddingTop: '4rem' }}><div className="spinner" /></div>}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/n/:slug" element={<Negocio />} />
+              <Route path="/entrar" element={<Auth />} />
+              <Route path="/inicio" element={guard(<Inicio />)} />
+              <Route path="/hub" element={guard(<Hub />)} />
+              <Route path="/agendamentos" element={guard(<MeusAgendamentos />)} />
+              <Route path="/perfil" element={guard(<Perfil />)} />
+              <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+              <Route path="/aprovadores" element={<RequireApprover><Aprovadores /></RequireApprover>} />
+              <Route path="/painel" element={guard(<PainelSeletor />)} />
+              <Route path="/painel/novo" element={guard(<NovoNegocio />)} />
+              <Route path="/painel/:id" element={guard(<PainelLayout />)}>
+                <Route index element={<Navigate to="agenda" replace />} />
+                <Route path="agenda" element={<Agenda />} />
+                <Route path="bloqueios" element={<Bloqueios />} />
+                <Route path="servicos" element={<CatalogoCrud key="s" table="services" />} />
+                <Route path="produtos" element={<CatalogoCrud key="p" table="products" />} />
+                <Route path="configuracoes" element={<Configuracoes />} />
+                <Route path="analise" element={<AnaliseNegocio />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            </Suspense>
+            <SchediaAssist />
+          </SchediaAssistProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

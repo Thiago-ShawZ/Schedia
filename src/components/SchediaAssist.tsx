@@ -1,37 +1,22 @@
-import { useState, useRef, useEffect, type FormEvent } from 'react'
+import { useState, useRef, useEffect, useMemo, type FormEvent } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { SparklesIcon, SendIcon } from './Icons'
+import {
+  useSchediaAssist,
+  type SchediaAssistBizData,
+  type SchediaAssistServiceData,
+  type SchediaAssistProductData,
+  type SchediaAssistSettingsData,
+  type SchediaAssistBookingData,
+} from '../context/SchediaAssistContext'
 
 export type SchediaAssistProps = {
-  biz: {
-    id: string
-    name: string
-    description?: string | null
-    city?: string | null
-    phone?: string | null
-    slug?: string
-  }
-  services?: Array<{
-    name: string
-    description?: string | null
-    price_cents: number
-    duration_min: number
-  }>
-  products?: Array<{
-    name: string
-    description?: string | null
-    price_cents: number
-  }>
-  settings?: {
-    timezone?: string
-    opening_hours?: Record<string, unknown>
-    min_cancel_hours?: number
-  } | null
-  currentService?: {
-    name: string
-    price_cents: number
-    duration_min: number
-  } | null
+  biz?: SchediaAssistBizData | null
+  services?: SchediaAssistServiceData[]
+  products?: SchediaAssistProductData[]
+  settings?: SchediaAssistSettingsData | null
+  currentService?: SchediaAssistBookingData | null
   bookingStep?: number
   bookingWhen?: string
 }
@@ -43,23 +28,38 @@ interface ChatMessage {
   isError?: boolean
 }
 
-export default function SchediaAssist({
-  biz,
-  services = [],
-  products = [],
-  settings = null,
-  currentService = null,
-  bookingStep,
-  bookingWhen,
-}: SchediaAssistProps) {
+export default function SchediaAssist(props: SchediaAssistProps) {
+  const context = useSchediaAssist()
+  const location = useLocation()
+
+  // Prioriza props diretas se fornecidas, caso contrário utiliza o contexto global
+  const biz = props.biz !== undefined ? props.biz : context.biz
+  const services = props.services !== undefined ? props.services : context.services
+  const products = props.products !== undefined ? props.products : context.products
+  const settings = props.settings !== undefined ? props.settings : context.settings
+  const currentService = props.currentService !== undefined ? props.currentService : context.currentService
+  const bookingStep = props.bookingStep !== undefined ? props.bookingStep : context.bookingStep
+  const bookingWhen = props.bookingWhen !== undefined ? props.bookingWhen : context.bookingWhen
+
+  // Determina se estamos no modo Estabelecimento ou no modo Plataforma Geral
+  const isBusinessMode = Boolean(biz?.name)
+
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Mensagem inicial de boas-vindas personalizada
-  const initialGreeting = useMemoGreeting(biz.name, currentService?.name)
+  // Mensagem inicial de boas-vindas adequada ao modo
+  const initialGreeting = useMemo(() => {
+    if (isBusinessMode && biz) {
+      if (currentService?.name) {
+        return `Olá! Sou o **Schedia Assist** do **${biz.name}**.\n\nVi que você está interessado em **${currentService.name}**. Posso te explicar sobre o procedimento, cuidados, tempo estimado ou valores. Como posso te ajudar?`
+      }
+      return `Olá! Sou o **Schedia Assist**, assistente virtual inteligente do **${biz.name}**.\n\nPosso te ajudar a esclarecer serviços, valores, regras de agendamento e informações sobre o atendimento. Como posso te ajudar hoje?`
+    }
+    return `Olá! Sou o **Schedia Assist**, o assistente virtual inteligente da plataforma Schedia.\n\nPosso te ajudar a encontrar estabelecimentos no Hub, entender como funcionam os agendamentos, gerenciar sua conta ou conhecer o **SchedLab 3D**. Como posso te ajudar?`
+  }, [isBusinessMode, biz?.name, currentService?.name])
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -68,6 +68,17 @@ export default function SchediaAssist({
       text: initialGreeting,
     },
   ])
+
+  // Se o contexto mudar de negócio ou para a plataforma (e não houver histórico de conversa do usuário), atualiza a saudação
+  useEffect(() => {
+    setMessages(prev => {
+      const hasUserMsg = prev.some(m => m.sender === 'user')
+      if (!hasUserMsg) {
+        return [{ id: 'welcome', sender: 'assistant', text: initialGreeting }]
+      }
+      return prev
+    })
+  }, [initialGreeting])
 
   // Rola para a mensagem mais recente ao atualizar
   useEffect(() => {
@@ -83,13 +94,23 @@ export default function SchediaAssist({
     }
   }, [isOpen])
 
-  // Sugestões de perguntas frequentes
-  const suggestions = [
-    'Quais serviços vocês oferecem?',
-    currentService ? `Como é feito o serviço ${currentService.name}?` : 'Qual a duração média dos serviços?',
-    'Como funciona o cancelamento ou reagendamento?',
-    'Qual o horário de atendimento?',
-  ]
+  // Sugestões de perguntas frequentes baseadas no modo
+  const suggestions = useMemo(() => {
+    if (isBusinessMode) {
+      return [
+        'Quais serviços vocês oferecem?',
+        currentService ? `Como é feito o serviço ${currentService.name}?` : 'Qual a duração média dos serviços?',
+        'Como funciona o cancelamento ou reagendamento?',
+        'Qual o horário de atendimento?',
+      ]
+    }
+    return [
+      'Como encontrar estabelecimentos no Hub?',
+      'Como funcionam os agendamentos e cancelamentos?',
+      'O que é o laboratório SchedLab 3D?',
+      'Como cadastrar meu negócio no Schedia?',
+    ]
+  }, [isBusinessMode, currentService])
 
   async function handleSend(textToSend?: string) {
     const query = (textToSend || input).trim()
@@ -102,42 +123,46 @@ export default function SchediaAssist({
     setLoading(true)
 
     // Prepara o contexto sanitizado para enviar à Edge Function
-    const contextPayload = {
-      business: {
-        id: biz.id,
-        name: biz.name,
-        description: biz.description || null,
-        city: biz.city || null,
-        phone: biz.phone || null,
-      },
-      services: services.map(s => ({
-        name: s.name,
-        description: s.description || null,
-        price_cents: s.price_cents,
-        duration_min: s.duration_min,
-      })),
-      products: products.map(p => ({
-        name: p.name,
-        description: p.description || null,
-        price_cents: p.price_cents,
-      })),
-      settings: settings
-        ? {
-            timezone: settings.timezone,
-            opening_hours: settings.opening_hours,
-            min_cancel_hours: settings.min_cancel_hours,
-          }
-        : undefined,
-      currentBooking: currentService
-        ? {
-            serviceName: currentService.name,
-            priceCents: currentService.price_cents,
-            durationMin: currentService.duration_min,
-            step: bookingStep,
-            when: bookingWhen,
-          }
-        : undefined,
-    }
+    const contextPayload = isBusinessMode && biz
+      ? {
+          business: {
+            id: biz.id,
+            name: biz.name,
+            description: biz.description || null,
+            city: biz.city || null,
+            phone: biz.phone || null,
+          },
+          services: services.map(s => ({
+            name: s.name,
+            description: s.description || null,
+            price_cents: s.price_cents,
+            duration_min: s.duration_min,
+          })),
+          products: products.map(p => ({
+            name: p.name,
+            description: p.description || null,
+            price_cents: p.price_cents,
+          })),
+          settings: settings
+            ? {
+                timezone: settings.timezone,
+                opening_hours: settings.opening_hours,
+                min_cancel_hours: settings.min_cancel_hours,
+              }
+            : undefined,
+          currentBooking: currentService
+            ? {
+                serviceName: currentService.name,
+                priceCents: currentService.price_cents,
+                durationMin: currentService.duration_min,
+                step: bookingStep,
+                when: bookingWhen,
+              }
+            : undefined,
+        }
+      : {
+          platformRoute: location.pathname,
+        }
 
     try {
       // Histórico recente para continuidade de diálogo (máx 5 anteriores)
@@ -197,7 +222,7 @@ export default function SchediaAssist({
 
   return (
     <>
-      {/* Botão Flutuante (Launcher) */}
+      {/* Botão Flutuante Fixo no Canto Inferior (Launcher) */}
       <div className="schedia-assist-launcher-wrap">
         <button
           type="button"
@@ -217,7 +242,7 @@ export default function SchediaAssist({
         </button>
       </div>
 
-      {/* Janela de Conversa Suspensa (Chat Window) */}
+      {/* Janela de Conversa Suspensa Fixa (Chat Window) */}
       {isOpen && (
         <div
           className="schedia-assist-window"
@@ -234,10 +259,12 @@ export default function SchediaAssist({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
                   <strong style={{ fontSize: '.95rem', color: '#ffffff' }}>Schedia Assist</strong>
-                  <span className="schedia-assist-tag">IA Oficial</span>
+                  <span className="schedia-assist-tag">
+                    {isBusinessMode ? 'IA do Local' : 'IA Oficial'}
+                  </span>
                 </div>
                 <small style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '.75rem', display: 'block' }}>
-                  {biz.name}
+                  {isBusinessMode && biz ? biz.name : 'Guia inteligente da plataforma'}
                 </small>
               </div>
             </div>
@@ -341,7 +368,11 @@ export default function SchediaAssist({
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder="Tire sua dúvida sobre serviços, horários..."
+                placeholder={
+                  isBusinessMode
+                    ? 'Tire sua dúvida sobre serviços, horários...'
+                    : 'Pergunte sobre agendamentos, o Hub, SchedLab...'
+                }
                 disabled={loading}
                 className="schedia-assist-input"
                 maxLength={400}
@@ -357,20 +388,15 @@ export default function SchediaAssist({
               </button>
             </div>
             <div className="schedia-assist-disclaimer">
-              Schedia Assist • Respostas com base nos dados oficiais de {biz.name}.
+              {isBusinessMode && biz
+                ? `Schedia Assist • Respostas com base nos dados oficiais de ${biz.name}.`
+                : 'Schedia Assist • Assistente oficial de navegação e suporte do Schedia.'}
             </div>
           </form>
         </div>
       )}
     </>
   )
-}
-
-function useMemoGreeting(bizName: string, serviceName?: string | null): string {
-  if (serviceName) {
-    return `Olá! Sou o **Schedia Assist** do **${bizName}**.\n\nVi que você está interessado em **${serviceName}**. Posso te explicar sobre o procedimento, cuidados, tempo estimado ou valores. Como posso te ajudar?`
-  }
-  return `Olá! Sou o **Schedia Assist**, assistente virtual de inteligência artificial do **${bizName}**.\n\nPosso te ajudar a escolher o melhor serviço, esclarecer valores, horários e regras de agendamento. Como posso te ajudar hoje?`
 }
 
 // Renderiza formatação simples de texto (negrito com ** e quebras de linha)
