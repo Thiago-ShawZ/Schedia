@@ -31,6 +31,7 @@ import {
   FlaskIcon,
   ExternalLinkIcon,
 } from './components/Icons'
+import { NotificationsBell } from './components/NotificationsBell'
 
 /** Ícone sol para tema claro */
 function SunIcon() {
@@ -170,8 +171,9 @@ function Header() {
           )}
         </nav>
 
-        {/* Theme toggle + Mobile Hamburger */}
+        {/* Theme toggle + Notifications + Mobile Hamburger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', flexShrink: 0 }}>
+          {session && <NotificationsBell />}
           <ThemeToggleBtn />
           <button
             className="nav-toggle"
@@ -200,6 +202,7 @@ function Header() {
               <span>Schedia</span>
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem' }}>
+              {session && <NotificationsBell onNavigate={close} />}
               <ThemeToggleBtn />
               <button className="icon-btn" onClick={close} aria-label="Fechar menu">
                 ✕

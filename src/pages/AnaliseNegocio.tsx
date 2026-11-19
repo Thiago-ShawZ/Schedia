@@ -296,62 +296,129 @@ export default function AnaliseNegocio() {
 
     // 0. SEMPRE força refresh do token antes de qualquer operação no Storage
     const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession()
-    if (refreshErr || !refreshData?.session) {
+    let currentSession = refreshData?.session
+    if (refreshErr || !currentSession) {
       // Fallback: tenta pegar sessão atual
       const { data: sessionData, error: sessionErr } = await supabase.auth.getSession()
       if (sessionErr || !sessionData?.session) {
         return setMsg('Sessão expirada. Por favor, saia e entre novamente para reautenticar.')
       }
+      currentSession = sessionData.session
     }
 
-    const { data: sessionFinal } = await supabase.auth.getSession()
-    const currentUserId = sessionFinal?.session?.user?.id
+    const currentUserId = currentSession?.user?.id
     if (!currentUserId) {
-      return setMsg('Usuário não autenticado. Recarregue a página.')
+      return setMsg('Usuário não autenticado. Recarregue a página ou faça login novamente.')
     }
 
     setBusy(true)
 
     try {
-      // 1. Upload das fotos usando Signed Upload URLs (mais robusto que upload direto)
+      // 1. Upload das fotos: tenta Signed Upload URL com fallback para upload direto
       const caminhosStorage: string[] = []
       for (let i = 0; i < fotos.length; i++) {
         const item = fotos[i]
-        const path = `${currentUserId}/${id}/${Date.now()}-${i + 1}-${Math.random().toString(36).slice(2, 7)}.jpg`
+        const numFoto = i + 1
 
-        // Cria URL assinada para upload (verifica RLS no servidor)
-        const { data: signedData, error: signedErr } = await supabase.storage
-          .from('business-applications')
-          .createSignedUploadUrl(path)
-
-        if (signedErr || !signedData) {
-          console.error(`Erro ao criar URL assinada para foto ${i + 1}:`, signedErr)
-          const errDetail = JSON.stringify({
-            msg: signedErr?.message,
-            status: (signedErr as any)?.status,
-            statusCode: (signedErr as any)?.statusCode,
-            errCode: (signedErr as any)?.error,
-          })
-          throw new Error(`Falha ao preparar envio da foto ${i + 1}: ${signedErr?.message || 'erro desconhecido'} — ${errDetail}`)
+        // Validação defensiva do arquivo
+        if (!item.file || !(item.file instanceof Blob)) {
+          throw new Error(`A foto ${numFoto} é inválida ou não pôde ser lida. Tente selecioná-la novamente.`)
         }
 
-        // Faz upload usando a URL assinada (não exige JWT válido no momento do upload)
-        const { error: uploadError } = await supabase.storage
-          .from('business-applications')
-          .uploadToSignedUrl(path, signedData.token, item.file, {
-            contentType: 'image/jpeg',
-          })
-
-        if (uploadError) {
-          console.error(`Erro ao enviar foto ${i + 1}:`, uploadError)
-          const errDetail = JSON.stringify({
-            msg: uploadError?.message,
-            status: (uploadError as any)?.status,
-            statusCode: (uploadError as any)?.statusCode,
-            errCode: (uploadError as any)?.error,
-          })
-          throw new Error(`Erro ao enviar foto ${i + 1}: ${uploadError.message} — ${errDetail}`)
+        if (item.file.size > 2 * 1024 * 1024) {
+          throw new Error(
+            `A foto ${numFoto} excede o limite máximo permitido de 2 MB (tamanho: ${(item.file.size / (1024 * 1024)).toFixed(2)} MB).`
+          )
         }
+
+        // Path obrigatório começando com auth.uid() para validar RLS em storage.objects
+        const randId = Math.random().toString(36).slice(2, 7)
+        const path = `${currentUserId}/${id}/${Date.now()}-${numFoto}-${randId}.jpg`
+
+        let uploadSucesso = false
+        let signedUrlErroMsg = ''
+
+        // Tentativa 1: createSignedUploadUrl + uploadToSignedUrl
+        try {
+          const { data: signedData, error: signedErr } = await supabase.storage
+            .from('business-applications')
+            .createSignedUploadUrl(path)
+
+          if (!signedErr && signedData?.token) {
+            const { error: uploadSignedErr } = await supabase.storage
+              .from('business-applications')
+              .uploadToSignedUrl(path, signedData.token, item.file, {
+                contentType: 'image/jpeg',
+              })
+
+            if (!uploadSignedErr) {
+              uploadSucesso = true
+            } else {
+              signedUrlErroMsg = `uploadToSignedUrl: ${uploadSignedErr.message}`
+            }
+          } else if (signedErr) {
+            const status = (signedErr as any)?.status || (signedErr as any)?.statusCode
+            signedUrlErroMsg = `createSignedUploadUrl: ${signedErr.message || 'Erro HTTP'} (status ${status || 400})`
+          }
+        } catch (e: any) {
+          signedUrlErroMsg = e?.message || 'Exceção na URL assinada'
+        }
+
+        // Tentativa 2 (Fallback): Upload padrão autenticado via multipart
+        if (!uploadSucesso) {
+          console.warn(`Tentativa de URL assinada falhou para foto ${numFoto} (${signedUrlErroMsg}). Executando fallback via upload direto...`)
+
+          const { error: directErr } = await supabase.storage
+            .from('business-applications')
+            .upload(path, item.file, {
+              contentType: 'image/jpeg',
+              upsert: false,
+            })
+
+          if (directErr) {
+            console.error(`Erro no upload da foto ${numFoto}:`, directErr)
+            const rawMsg = directErr.message || ''
+            const status = (directErr as any)?.status || (directErr as any)?.statusCode || (directErr as any)?.error
+
+            if (/bucket not found|not found|not_found/i.test(rawMsg) || status === 404 || status === '404') {
+              throw new Error(
+                `O bucket "business-applications" não foi encontrado no Supabase Storage. Verifique se o bucket foi criado no dashboard ou via migration.`
+              )
+            }
+
+            if (/row-level security|permission denied|unauthorized|forbidden/i.test(rawMsg) || status === 401 || status === 403) {
+              throw new Error(
+                `Permissão negada ao enviar a foto ${numFoto}. Verifique se a sua sessão está ativa e se as políticas RLS do bucket "business-applications" foram criadas para o seu usuário.`
+              )
+            }
+
+            if (/payload too large|entity too large|file size/i.test(rawMsg) || status === 413) {
+              throw new Error(
+                `A foto ${numFoto} ultrapassa o limite de tamanho configurado no bucket (máximo de 2 MB).`
+              )
+            }
+
+            if (/mime|unsupported|media type/i.test(rawMsg) || status === 415) {
+              throw new Error(
+                `O formato da foto ${numFoto} não é aceito pelo bucket. Apenas imagens JPEG, PNG ou WebP são permitidas.`
+              )
+            }
+
+            // HTTP 400 no Supabase Storage normalmente é violação de RLS (new row violates row-level security policy)
+            if (status === 400 || status === '400' || /400 error/i.test(rawMsg)) {
+              throw new Error(
+                `Falha de permissão (RLS) ao enviar a foto ${numFoto}. Certifique-se de executar as policies de INSERT/SELECT no bucket "business-applications" no SQL Editor do Supabase.`
+              )
+            }
+
+            throw new Error(
+              `Falha ao enviar a foto ${numFoto}: ${rawMsg || 'erro desconhecido'} (HTTP ${status || '400'}). [SignedURL: ${signedUrlErroMsg || 'indisponível'}]`
+            )
+          }
+
+          uploadSucesso = true
+        }
+
         caminhosStorage.push(path)
       }
 
@@ -376,6 +443,9 @@ export default function AnaliseNegocio() {
       })
 
       if (insertError) {
+        if (insertError.code === '23505') {
+          throw new Error('Já existe uma solicitação em análise para este estabelecimento. Aguarde a revisão.')
+        }
         throw new Error(`Erro ao salvar solicitação: ${insertError.message} (${insertError.code})`)
       }
 

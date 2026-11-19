@@ -353,6 +353,175 @@ main {
   background: var(--primary-lt)
 }
 
+/* ─── Notificações In-App ─────────────────────────────────────────── */
+.notif-bell-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.notif-bell-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  color: var(--muted);
+  padding: .35rem;
+  border-radius: var(--r-sm);
+  min-width: 36px;
+  min-height: 36px;
+  flex-shrink: 0;
+  position: relative;
+  transition: color var(--tr), background var(--tr), border-color var(--tr);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.notif-bell-btn:hover,
+.notif-bell-btn.active {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-lt);
+}
+
+.notif-badge-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--primary);
+  color: var(--on-p);
+  font-size: .65rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 360px;
+  max-width: min(360px, calc(100vw - 1.5rem));
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-lg);
+  z-index: 250;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeIn .18s ease both;
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+
+.notif-header-title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 700;
+  font-size: .92rem;
+  color: var(--fg);
+}
+
+.notif-list {
+  max-height: 380px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notif-item {
+  display: flex;
+  gap: .65rem;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background var(--tr);
+  text-decoration: none;
+  color: inherit;
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item:hover {
+  background: var(--bg-sub);
+}
+
+.notif-item.unread {
+  background: color-mix(in srgb, var(--primary-lt) 40%, var(--card));
+}
+
+.notif-item.unread:hover {
+  background: color-mix(in srgb, var(--primary-lt) 65%, var(--card));
+}
+
+.notif-item-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+  margin-top: .4rem;
+}
+
+.notif-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-item-title {
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.35;
+  margin-bottom: .2rem;
+}
+
+.notif-item-desc {
+  font-size: .8rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-bottom: .3rem;
+  word-break: break-word;
+}
+
+.notif-item-time {
+  font-size: .72rem;
+  color: var(--muted);
+}
+
+.notif-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: .88rem;
+}
+
 /* ─── Mobile Drawer ───────────────────────────────────────────────── */
 .mobile-drawer {
   display: none;
