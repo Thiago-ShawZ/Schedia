@@ -75,11 +75,11 @@ export default function ImageUploader({
 
   return (
     <div style={{ margin: '.75rem 0' }}>
-      <label style={{ fontSize: '.84rem', fontWeight: 600, color: 'var(--fg)', marginBottom: '.4rem', display: 'block' }}>
+      <label style={{ fontSize: '.84rem', fontWeight: 600, color: 'var(--fg)', marginBottom: '.5rem', display: 'block' }}>
         {label}
       </label>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
         {/* Preview Container */}
         <div
           style={{
@@ -95,6 +95,7 @@ export default function ImageUploader({
             justifyContent: 'center',
             flexShrink: 0,
             cursor: 'pointer',
+            transition: 'border-color var(--tr)',
           }}
           onClick={() => fileInputRef.current?.click()}
           title="Clique para alterar a imagem"
@@ -122,6 +123,7 @@ export default function ImageUploader({
               color: '#fff',
               opacity: 0,
               transition: 'opacity var(--tr)',
+              pointerEvents: 'none',
             }}
             className="uploader-overlay"
           >
@@ -129,9 +131,9 @@ export default function ImageUploader({
           </div>
         </div>
 
-        {/* Buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '.4rem' }}>
-          <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
+        {/* Buttons + Info */}
+        <div style={{ flex: 1, minWidth: '160px' }}>
+          <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.4rem' }}>
             <button
               type="button"
               className="btn sm ghost"
@@ -149,21 +151,22 @@ export default function ImageUploader({
             >
               {showUrlInput ? 'Ocultar URL' : 'Inserir link (URL)'}
             </button>
-
-            {value && (
-              <button
-                type="button"
-                className="link"
-                style={{ fontSize: '.8rem', color: 'var(--err)', marginLeft: '.25rem' }}
-                onClick={() => {
-                  onChange('')
-                  setUrlVal('')
-                }}
-              >
-                Remover
-              </button>
-            )}
           </div>
+
+          {value && (
+            <button
+              type="button"
+              className="link"
+              style={{ fontSize: '.8rem', color: 'var(--err)', display: 'block', marginBottom: '.35rem' }}
+              onClick={() => {
+                onChange('')
+                setUrlVal('')
+              }}
+            >
+              Remover
+            </button>
+          )}
+
           <small style={{ color: 'var(--muted)', fontSize: '.75rem' }}>
             Formatos recomendados: JPG, PNG ou WebP.
           </small>

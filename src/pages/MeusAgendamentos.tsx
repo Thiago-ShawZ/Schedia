@@ -113,49 +113,22 @@ export default function MeusAgendamentos() {
       )}
 
       {/* Tabs / Filter switch */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '.5rem',
-          borderBottom: '1px solid var(--line)',
-          marginBottom: '1.25rem',
-        }}
-      >
+      <div className="section-tabs" role="tablist" aria-label="Filtrar agendamentos">
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'futuros'}
+          className="section-tab-btn"
           onClick={() => setActiveTab('futuros')}
-          style={{
-            flex: 1,
-            padding: '.65rem 1rem',
-            border: 'none',
-            background: 'none',
-            fontSize: '.9rem',
-            fontWeight: activeTab === 'futuros' ? 700 : 500,
-            color: activeTab === 'futuros' ? 'var(--primary)' : 'var(--muted)',
-            borderBottom: activeTab === 'futuros' ? '2.5px solid var(--primary)' : '2.5px solid transparent',
-            cursor: 'pointer',
-            minHeight: '44px',
-            transition: 'all var(--tr)',
-          }}
         >
           Próximos ({futuros.length})
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'historico'}
+          className="section-tab-btn"
           onClick={() => setActiveTab('historico')}
-          style={{
-            flex: 1,
-            padding: '.65rem 1rem',
-            border: 'none',
-            background: 'none',
-            fontSize: '.9rem',
-            fontWeight: activeTab === 'historico' ? 700 : 500,
-            color: activeTab === 'historico' ? 'var(--primary)' : 'var(--muted)',
-            borderBottom: activeTab === 'historico' ? '2.5px solid var(--primary)' : '2.5px solid transparent',
-            cursor: 'pointer',
-            minHeight: '44px',
-            transition: 'all var(--tr)',
-          }}
         >
           Histórico ({historico.length})
         </button>
