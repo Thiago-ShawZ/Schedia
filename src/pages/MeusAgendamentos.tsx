@@ -11,7 +11,6 @@ import {
   BuildingIcon,
   DownloadIcon,
   WhatsAppIcon,
-  ArrowLeftIcon,
 } from '../components/Icons'
 import { buildGoogleCalendarUrl, downloadIcsFile } from '../lib/calendar'
 
@@ -119,10 +118,11 @@ export default function MeusAgendamentos() {
   const [resch, setResch] = useState<string | null>(null)
   const [slot, setSlot] = useState<Slot | null>(null)
 
-  // Controle de Mês e Data Selecionada do Calendário
+  // Controle de Mês, Data Selecionada e Modal Suspenso
   const todayKey = useMemo(() => formatDateToKey(new Date()), [])
   const [viewDate, setViewDate] = useState<Date>(() => new Date())
   const [selectedDate, setSelectedDate] = useState<string>(todayKey)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [showAllList, setShowAllList] = useState(false)
 
   const load = useCallback(async () => {
@@ -155,6 +155,23 @@ export default function MeusAgendamentos() {
     load()
   }, [load])
 
+  // Bloqueio de scroll ao abrir o modal suspenso
+  useEffect(() => {
+    if (isDetailsOpen) {
+      document.body.style.overflow = 'hidden'
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setIsDetailsOpen(false)
+      }
+      window.addEventListener('keydown', onKey)
+      return () => {
+        document.body.style.overflow = ''
+        window.removeEventListener('keydown', onKey)
+      }
+    } else {
+      document.body.style.overflow = ''
+    }
+  }, [isDetailsOpen])
+
   // Agrupa os agendamentos por dia (chave YYYY-MM-DD)
   const apptsByDay = useMemo(() => {
     const map = new Map<string, A[]>()
@@ -167,24 +184,6 @@ export default function MeusAgendamentos() {
     }
     return map
   }, [items])
-
-  // Se houver agendamentos futuros e o dia de hoje não tiver nenhum, seleciona a data do próximo agendamento automaticamente
-  useEffect(() => {
-    if (!items || items.length === 0) return
-    const todayList = apptsByDay.get(todayKey)
-    if (!todayList || todayList.length === 0) {
-      const nextFuture = items
-        .filter(a => a.status === 'confirmed' && Date.parse(a.starts_at) >= Date.now())
-        .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at))[0]
-
-      if (nextFuture) {
-        const k = getApptDateKey(nextFuture.starts_at, nextFuture.timezone)
-        setSelectedDate(k)
-        const [y, m] = k.split('-').map(Number)
-        setViewDate(new Date(y, m - 1, 1))
-      }
-    }
-  }, [items, apptsByDay, todayKey])
 
   const editavel = (a: A) =>
     a.status === 'confirmed' &&
@@ -223,6 +222,13 @@ export default function MeusAgendamentos() {
     const now = new Date()
     setViewDate(new Date(now.getFullYear(), now.getMonth(), 1))
     setSelectedDate(todayKey)
+  }
+
+  const handleDayClick = (dateStr: string) => {
+    setSelectedDate(dateStr)
+    setResch(null)
+    setSlot(null)
+    setIsDetailsOpen(true)
   }
 
   const calendarDays = useMemo(() => {
@@ -288,11 +294,22 @@ export default function MeusAgendamentos() {
 
   return (
     <main>
-      <div style={{ marginBottom: '1.25rem' }}>
-        <h1 style={{ marginBottom: '.35rem' }}>Meus agendamentos</h1>
-        <p style={{ color: 'var(--muted)', fontSize: '.92rem' }}>
-          Acompanhe suas reservas, navegue pelo calendário, entre em contato ou gerencie seus horários.
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '.75rem' }}>
+        <div>
+          <h1 style={{ marginBottom: '.25rem' }}>Meus agendamentos</h1>
+          <p style={{ color: 'var(--muted)', fontSize: '.92rem', margin: 0 }}>
+            Clique em qualquer dia para ver os detalhes, entrar em contato ou gerenciar horários.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="btn ghost sm"
+          onClick={() => setShowAllList(!showAllList)}
+          style={{ fontSize: '.84rem' }}
+        >
+          {showAllList ? 'Ocultar histórico em lista' : 'Ver histórico completo em lista'}
+        </button>
       </div>
 
       {msg && (
@@ -384,11 +401,11 @@ export default function MeusAgendamentos() {
                 key={item.dateStr}
                 role="button"
                 tabIndex={0}
-                onClick={() => setSelectedDate(item.dateStr)}
+                onClick={() => handleDayClick(item.dateStr)}
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    setSelectedDate(item.dateStr)
+                    handleDayClick(item.dateStr)
                   }
                 }}
                 className={`calendar-day-cell${!item.isCurrentMonth ? ' other-month' : ''}${
@@ -421,313 +438,331 @@ export default function MeusAgendamentos() {
         </div>
       </section>
 
-      {/* ─── PAINEL DE DETALHES DA DATA SELECIONADA ─── */}
-      <section style={{ marginBottom: '2rem' }}>
+      {/* ─── TELA SUSPENSA (MODAL) COM OS DETALHES DO AGENDAMENTO ─── */}
+      {isDetailsOpen && (
         <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1rem',
-            flexWrap: 'wrap',
-            gap: '.5rem',
-          }}
+          className="modal-backdrop"
+          onClick={() => setIsDetailsOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Detalhes de agendamentos em ${selectedDateLabel}`}
         >
-          <div>
-            <h2 style={{ fontSize: '1.2rem', margin: 0, textTransform: 'capitalize' }}>
-              {selectedDateLabel}
-            </h2>
-            <small style={{ color: 'var(--muted)' }}>
-              {selectedDayAppts.length === 0
-                ? 'Nenhum agendamento programado para esta data'
-                : `${selectedDayAppts.length} agendamento${selectedDayAppts.length > 1 ? 's' : ''} registrado${selectedDayAppts.length > 1 ? 's' : ''}`}
-            </small>
-          </div>
-
-          <button
-            type="button"
-            className="btn ghost sm"
-            onClick={() => setShowAllList(!showAllList)}
-            style={{ fontSize: '.8rem' }}
+          <div
+            className="modal-dialog"
+            onClick={e => e.stopPropagation()}
           >
-            {showAllList ? 'Ocultar histórico completo' : 'Ver histórico completo em lista'}
-          </button>
-        </div>
+            {/* Cabeçalho do Modal */}
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">
+                  <CalendarIcon size={18} style={{ color: 'var(--primary)' }} />
+                  <span>{selectedDateLabel}</span>
+                </h3>
+                <small style={{ color: 'var(--muted)', display: 'block', marginTop: '.2rem' }}>
+                  {selectedDayAppts.length === 0
+                    ? 'Nenhum compromisso agendado para esta data'
+                    : `${selectedDayAppts.length} agendamento${selectedDayAppts.length > 1 ? 's' : ''} registrado${selectedDayAppts.length > 1 ? 's' : ''}`}
+                </small>
+              </div>
 
-        {selectedDayAppts.length === 0 ? (
-          <div className="card empty" style={{ padding: '2rem 1rem' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                padding: '.85rem',
-                background: 'var(--bg-sub)',
-                borderRadius: '50%',
-                color: 'var(--muted)',
-                marginBottom: '.5rem',
-              }}
-            >
-              <CalendarIcon size={28} />
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setIsDetailsOpen(false)}
+                aria-label="Fechar detalhes"
+                title="Fechar"
+              >
+                ✕
+              </button>
             </div>
-            <h3 style={{ textTransform: 'none', color: 'var(--fg)', fontSize: '1rem', margin: '.25rem 0' }}>
-              Nenhum agendamento nesta data
-            </h3>
-            <p style={{ maxWidth: '420px', margin: '.25rem auto 1rem', fontSize: '.86rem', color: 'var(--muted)' }}>
-              Você não possui reservas para este dia. Selecione no calendário qualquer data com marcador colorido para ver detalhes ou agende um novo horário.
-            </p>
-            <Link className="btn sm" to="/hub">
-              Explorar negócios no Hub
-            </Link>
-          </div>
-        ) : (
-          <ul className="list">
-            {selectedDayAppts.map(a => {
-              const st = STATUS_LABELS[a.status] ?? { label: a.status, badge: 'badge-muted' }
-              const isConfirmed = a.status === 'confirmed'
-              const isFuture = Date.parse(a.starts_at) > Date.now()
-              const phone = bizPhones.get(a.business_id)
-              const waLink = phone
-                ? buildWhatsAppLink(
-                    phone,
-                    `Olá! Gostaria de tirar uma dúvida sobre meu agendamento no Schedia: "${a.service_name}" em ${quando(a)}.`
-                  )
-                : null
 
-              return (
-                <li
-                  key={a.id}
-                  className={a.status === 'cancelled' ? 'off' : ''}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '.9rem',
-                    padding: '1.25rem',
-                  }}
-                >
+            {/* Conteúdo do Modal */}
+            <div className="modal-body">
+              {selectedDayAppts.length === 0 ? (
+                <div className="center" style={{ padding: '2rem 1rem' }}>
                   <div
                     style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      flexWrap: 'wrap',
-                      gap: '.5rem',
-                      width: '100%',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.35rem' }}>
-                        <span className={`badge ${st.badge}`}>{st.label}</span>
-                        <span
-                          style={{
-                            fontSize: '.8rem',
-                            color: 'var(--muted)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '.25rem',
-                          }}
-                        >
-                          <ClockIcon size={12} />
-                          {a.duration_min} min
-                        </span>
-                      </div>
-                      <strong style={{ fontSize: '1.1rem' }}>{a.service_name}</strong>
-                      <div style={{ marginTop: '.3rem' }}>
-                        <Link
-                          to={`/n/${a.business_slug}`}
-                          style={{
-                            color: 'var(--primary)',
-                            fontWeight: 600,
-                            fontSize: '.88rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '.35rem',
-                          }}
-                        >
-                          <BuildingIcon size={14} />
-                          <span>{a.business_name}</span>
-                        </Link>
-                      </div>
-                    </div>
-
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--fg)' }}>
-                        {brl(a.price_cents)}
-                      </div>
-                      <small style={{ color: 'var(--muted)', fontSize: '.76rem' }}>Preço do serviço</small>
-                    </div>
-                  </div>
-
-                  {/* Faixa de Horário */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '.5rem',
+                      display: 'inline-flex',
+                      padding: '.85rem',
                       background: 'var(--bg-sub)',
-                      padding: '.65rem .85rem',
-                      borderRadius: 'var(--r-sm)',
-                      fontSize: '.88rem',
-                      color: 'var(--fg)',
+                      borderRadius: '50%',
+                      color: 'var(--muted)',
+                      marginBottom: '.5rem',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                      <ClockIcon size={15} style={{ color: 'var(--primary)' }} />
-                      <span style={{ fontWeight: 700 }}>{horaFormatada(a)}</span>
-                    </div>
-
-                    {/* Botão de Contato com a Loja */}
-                    {waLink ? (
-                      <a
-                        href={waLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn sm whatsapp"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.32rem .75rem' }}
-                        title="Enviar mensagem no WhatsApp do estabelecimento"
-                      >
-                        <WhatsAppIcon size={14} />
-                        <span>Entrar em contato</span>
-                      </a>
-                    ) : phone ? (
-                      <a
-                        href={`tel:${phone}`}
-                        className="btn sm ghost"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.32rem .75rem' }}
-                        title="Ligar para o estabelecimento"
-                      >
-                        <span>Ligar: {phone}</span>
-                      </a>
-                    ) : (
-                      <Link
-                        to={`/n/${a.business_slug}`}
-                        className="btn sm ghost"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.32rem .75rem' }}
-                        title="Ver página da loja"
-                      >
-                        <BuildingIcon size={13} />
-                        <span>Página da loja</span>
-                      </Link>
-                    )}
+                    <CalendarIcon size={28} />
                   </div>
+                  <h4 style={{ color: 'var(--fg)', fontSize: '1rem', margin: '.25rem 0' }}>
+                    Sem agendamentos neste dia
+                  </h4>
+                  <p style={{ maxWidth: '380px', margin: '.25rem auto 1.25rem', fontSize: '.86rem', color: 'var(--muted)' }}>
+                    Você não possui horários marcados para esta data. Deseja agendar um novo serviço?
+                  </p>
+                  <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'center' }}>
+                    <Link className="btn sm" to="/hub" onClick={() => setIsDetailsOpen(false)}>
+                      Explorar negócios no Hub
+                    </Link>
+                    <button type="button" className="btn ghost sm" onClick={() => setIsDetailsOpen(false)}>
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                selectedDayAppts.map(a => {
+                  const st = STATUS_LABELS[a.status] ?? { label: a.status, badge: 'badge-muted' }
+                  const isConfirmed = a.status === 'confirmed'
+                  const isFuture = Date.parse(a.starts_at) > Date.now()
+                  const phone = bizPhones.get(a.business_id)
+                  const waLink = phone
+                    ? buildWhatsAppLink(
+                        phone,
+                        `Olá! Gostaria de tirar uma dúvida sobre meu agendamento no Schedia: "${a.service_name}" em ${quando(a)}.`
+                      )
+                    : null
 
-                  {/* Reschedule inline area */}
-                  {resch === a.id && (
-                    <div className="reserva" style={{ width: '100%', marginTop: '.5rem' }}>
-                      <h3 style={{ marginTop: 0, textTransform: 'none', color: 'var(--fg)', fontSize: '1rem' }}>
-                        Selecione uma nova data e horário
-                      </h3>
-                      <SlotPicker
-                        bizId={a.business_id}
-                        durationMin={a.duration_min}
-                        cfg={a}
-                        excludeStartsAt={a.starts_at}
-                        onPick={setSlot}
-                      />
-                      <div className="actions" style={{ marginTop: '1rem' }}>
-                        <button className="btn sm" disabled={!slot} onClick={reagendar}>
-                          Confirmar novo horário
-                        </button>
-                        <button
-                          className="btn ghost sm"
-                          onClick={() => {
-                            setResch(null)
-                            setSlot(null)
-                          }}
-                        >
-                          Cancelar alteração
-                        </button>
+                  return (
+                    <div
+                      key={a.id}
+                      className={`card ${a.status === 'cancelled' ? 'off' : ''}`}
+                      style={{
+                        padding: '1.25rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '.85rem',
+                        background: 'var(--bg-sub)',
+                        border: '1px solid var(--line)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          flexWrap: 'wrap',
+                          gap: '.5rem',
+                          width: '100%',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.35rem' }}>
+                            <span className={`badge ${st.badge}`}>{st.label}</span>
+                            <span
+                              style={{
+                                fontSize: '.8rem',
+                                color: 'var(--muted)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '.25rem',
+                              }}
+                            >
+                              <ClockIcon size={12} />
+                              {a.duration_min} min
+                            </span>
+                          </div>
+                          <strong style={{ fontSize: '1.1rem' }}>{a.service_name}</strong>
+                          <div style={{ marginTop: '.3rem' }}>
+                            <Link
+                              to={`/n/${a.business_slug}`}
+                              onClick={() => setIsDetailsOpen(false)}
+                              style={{
+                                color: 'var(--primary)',
+                                fontWeight: 600,
+                                fontSize: '.88rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '.35rem',
+                              }}
+                            >
+                              <BuildingIcon size={14} />
+                              <span>{a.business_name}</span>
+                            </Link>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--fg)' }}>
+                            {brl(a.price_cents)}
+                          </div>
+                          <small style={{ color: 'var(--muted)', fontSize: '.76rem' }}>Preço do serviço</small>
+                        </div>
                       </div>
-                    </div>
-                  )}
 
-                  {/* Ações do Agendamento */}
-                  <div
-                    className="appt-actions"
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      gap: '.75rem',
-                      alignItems: 'center',
-                      borderTop: '1px solid var(--line)',
-                      paddingTop: '.75rem',
-                      width: '100%',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    {/* Ações de Calendário (Google Agenda e .ics) */}
-                    <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {isConfirmed && isFuture && (
-                        <>
+                      {/* Faixa de Horário e Botão de Contato */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '.5rem',
+                          background: 'var(--card)',
+                          padding: '.65rem .85rem',
+                          borderRadius: 'var(--r-sm)',
+                          fontSize: '.88rem',
+                          color: 'var(--fg)',
+                          border: '1px solid var(--line)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                          <ClockIcon size={15} style={{ color: 'var(--primary)' }} />
+                          <span style={{ fontWeight: 700 }}>{horaFormatada(a)}</span>
+                        </div>
+
+                        {/* Botão de Contato com a Loja */}
+                        {waLink ? (
                           <a
-                            href={buildGoogleCalendarUrl({
-                              id: a.id,
-                              serviceName: a.service_name,
-                              businessName: a.business_name,
-                              startsAt: a.starts_at,
-                              durationMin: a.duration_min,
-                              timezone: a.timezone,
-                            })}
+                            href={waLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn ghost sm"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem' }}
-                            title="Adicionar evento ao Google Agenda"
+                            className="btn sm whatsapp"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.32rem .75rem' }}
+                            title="Enviar mensagem no WhatsApp do estabelecimento"
                           >
-                            <CalendarIcon size={14} />
-                            <span>Adicionar à agenda</span>
+                            <WhatsAppIcon size={14} />
+                            <span>Entrar em contato</span>
                           </a>
-                          <button
-                            type="button"
-                            className="btn ghost sm"
-                            onClick={() =>
-                              downloadIcsFile({
-                                id: a.id,
-                                serviceName: a.service_name,
-                                businessName: a.business_name,
-                                startsAt: a.starts_at,
-                                durationMin: a.duration_min,
-                                timezone: a.timezone,
-                              })
-                            }
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem' }}
-                            title="Baixar arquivo de calendário (.ics)"
+                        ) : phone ? (
+                          <a
+                            href={`tel:${phone}`}
+                            className="btn sm ghost"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.32rem .75rem' }}
+                            title="Ligar para o estabelecimento"
                           >
-                            <DownloadIcon size={14} />
-                            <span>Baixar .ics</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Ações de Gestão (Reagendar / Cancelar) */}
-                    <div style={{ display: 'flex', gap: '.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {isConfirmed && isFuture && resch !== a.id && (
-                        editavel(a) ? (
-                          <>
-                            <button className="btn ghost sm" onClick={() => setResch(a.id)}>
-                              Reagendar
-                            </button>
-                            <button className="btn sm danger" onClick={() => cancelar(a)}>
-                              Cancelar
-                            </button>
-                          </>
+                            <span>Ligar: {phone}</span>
+                          </a>
                         ) : (
-                          <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
-                            Prazo de cancelamento ({a.min_cancel_hours}h antes) expirado.
-                          </small>
-                        )
-                      )}
-                    </div>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
+                          <Link
+                            to={`/n/${a.business_slug}`}
+                            onClick={() => setIsDetailsOpen(false)}
+                            className="btn sm ghost"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.32rem .75rem' }}
+                            title="Ver página da loja"
+                          >
+                            <BuildingIcon size={13} />
+                            <span>Página da loja</span>
+                          </Link>
+                        )}
+                      </div>
 
-      {/* ─── HISTÓRICO COMPLETO EXPANSÍVEL (PRESERVAÇÃO TOTAL DOS DADOS) ─── */}
+                      {/* Reschedule inline area */}
+                      {resch === a.id && (
+                        <div className="reserva" style={{ width: '100%', marginTop: '.5rem' }}>
+                          <h4 style={{ marginTop: 0, textTransform: 'none', color: 'var(--fg)', fontSize: '.95rem' }}>
+                            Selecione uma nova data e horário
+                          </h4>
+                          <SlotPicker
+                            bizId={a.business_id}
+                            durationMin={a.duration_min}
+                            cfg={a}
+                            excludeStartsAt={a.starts_at}
+                            onPick={setSlot}
+                          />
+                          <div className="actions" style={{ marginTop: '1rem' }}>
+                            <button className="btn sm" disabled={!slot} onClick={reagendar}>
+                              Confirmar novo horário
+                            </button>
+                            <button
+                              className="btn ghost sm"
+                              onClick={() => {
+                                setResch(null)
+                                setSlot(null)
+                              }}
+                            >
+                              Cancelar alteração
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Ações do Agendamento */}
+                      <div
+                        className="appt-actions"
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: '.75rem',
+                          alignItems: 'center',
+                          borderTop: '1px solid var(--line)',
+                          paddingTop: '.75rem',
+                          width: '100%',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        {/* Ações de Calendário (Google Agenda e .ics) */}
+                        <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {isConfirmed && isFuture && (
+                            <>
+                              <a
+                                href={buildGoogleCalendarUrl({
+                                  id: a.id,
+                                  serviceName: a.service_name,
+                                  businessName: a.business_name,
+                                  startsAt: a.starts_at,
+                                  durationMin: a.duration_min,
+                                  timezone: a.timezone,
+                                })}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn ghost sm"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem' }}
+                                title="Adicionar evento ao Google Agenda"
+                              >
+                                <CalendarIcon size={14} />
+                                <span>Adicionar à agenda</span>
+                              </a>
+                              <button
+                                type="button"
+                                className="btn ghost sm"
+                                onClick={() =>
+                                  downloadIcsFile({
+                                    id: a.id,
+                                    serviceName: a.service_name,
+                                    businessName: a.business_name,
+                                    startsAt: a.starts_at,
+                                    durationMin: a.duration_min,
+                                    timezone: a.timezone,
+                                  })
+                                }
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem' }}
+                                title="Baixar arquivo de calendário (.ics)"
+                              >
+                                <DownloadIcon size={14} />
+                                <span>Baixar .ics</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Ações de Gestão (Reagendar / Cancelar) */}
+                        <div style={{ display: 'flex', gap: '.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {isConfirmed && isFuture && resch !== a.id && (
+                            editavel(a) ? (
+                              <>
+                                <button className="btn ghost sm" onClick={() => setResch(a.id)}>
+                                  Reagendar
+                                </button>
+                                <button className="btn sm danger" onClick={() => cancelar(a)}>
+                                  Cancelar
+                                </button>
+                              </>
+                            ) : (
+                              <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
+                                Prazo de cancelamento ({a.min_cancel_hours}h antes) expirado.
+                              </small>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── HISTÓRICO COMPLETO EM LISTA (PRESERVAÇÃO INTEGRAL) ─── */}
       {showAllList && (
         <section style={{ borderTop: '1px solid var(--line)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -774,11 +809,11 @@ export default function MeusAgendamentos() {
                       setSelectedDate(dateKey)
                       const [y, m] = dateKey.split('-').map(Number)
                       setViewDate(new Date(y, m - 1, 1))
-                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                      setIsDetailsOpen(true)
                     }}
                     style={{ fontSize: '.78rem' }}
                   >
-                    Ver no calendário →
+                    Ver detalhes no calendário →
                   </button>
                 </li>
               )
