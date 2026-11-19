@@ -31,6 +31,9 @@
   --r-f: 9999px;
   --tr: .16s ease;
   --hh: 60px;
+  --lab-accent: #1fa87d;
+  --lab-accent-lt: rgba(31, 168, 125, 0.1);
+  --lab-accent-border: rgba(31, 168, 125, 0.3);
   color-scheme: light;
 }
 
@@ -58,6 +61,9 @@
     --sh: 0 1px 3px rgba(0, 0, 0, .3);
     --sh-md: 0 4px 16px rgba(0, 0, 0, .5);
     --sh-lg: 0 10px 40px rgba(0, 0, 0, .6);
+    --lab-accent: #43c497;
+    --lab-accent-lt: rgba(67, 196, 151, 0.14);
+    --lab-accent-border: rgba(67, 196, 151, 0.35);
     color-scheme: dark;
   }
 }
@@ -85,6 +91,9 @@
   --sh: 0 1px 3px rgba(0, 0, 0, .3);
   --sh-md: 0 4px 16px rgba(0, 0, 0, .5);
   --sh-lg: 0 10px 40px rgba(0, 0, 0, .6);
+  --lab-accent: #43c497;
+  --lab-accent-lt: rgba(67, 196, 151, 0.14);
+  --lab-accent-border: rgba(67, 196, 151, 0.35);
   color-scheme: dark;
 }
 
@@ -111,6 +120,9 @@
   --sh: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
   --sh-md: 0 4px 16px rgba(0, 0, 0, .09);
   --sh-lg: 0 10px 40px rgba(0, 0, 0, .13);
+  --lab-accent: #1fa87d;
+  --lab-accent-lt: rgba(31, 168, 125, 0.1);
+  --lab-accent-border: rgba(31, 168, 125, 0.3);
   color-scheme: light;
 }
 
@@ -487,6 +499,167 @@ main {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem
+}
+
+/* ─── SchedLab Ecosystem Utilities ────────────────────────────────── */
+.schedlab-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .4rem .75rem;
+  border-radius: var(--r-sm);
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color var(--tr), background var(--tr);
+}
+
+.schedlab-nav-link:hover {
+  color: var(--lab-accent);
+  background: var(--lab-accent-lt);
+}
+
+.schedlab-nav-link svg {
+  color: var(--lab-accent);
+  transition: transform var(--tr);
+}
+
+.schedlab-nav-link:hover svg {
+  transform: scale(1.1);
+}
+
+.mobile-schedlab-link {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .65rem .75rem;
+  border-radius: var(--r-sm);
+  font-size: .9rem;
+  font-weight: 500;
+  color: var(--fg);
+  min-height: 44px;
+  text-decoration: none;
+  transition: background var(--tr), color var(--tr);
+}
+
+.mobile-schedlab-link:hover {
+  background: var(--lab-accent-lt) !important;
+  color: var(--lab-accent) !important;
+}
+
+.schedlab-badge {
+  font-size: .68rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: .2rem .45rem;
+  border-radius: 9999px;
+  background: var(--lab-accent-lt);
+  color: var(--lab-accent);
+  letter-spacing: .02em;
+}
+
+.schedlab-hero-cta {
+  border-color: var(--lab-accent-border) !important;
+  color: var(--fg);
+  transition: border-color var(--tr), color var(--tr), background var(--tr);
+}
+
+.schedlab-hero-cta svg {
+  color: var(--lab-accent);
+}
+
+.schedlab-hero-cta:hover {
+  border-color: var(--lab-accent) !important;
+  color: var(--lab-accent) !important;
+  background: var(--lab-accent-lt) !important;
+}
+
+.schedlab-ecosystem-banner {
+  margin-top: 2rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--lab-accent-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  text-align: left;
+}
+
+.schedlab-ecosystem-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r);
+  background: var(--lab-accent-lt);
+  color: var(--lab-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.schedlab-ecosystem-info {
+  flex: 1;
+}
+
+.schedlab-ecosystem-tag {
+  display: inline-block;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--lab-accent);
+  margin-bottom: .2rem;
+}
+
+.schedlab-ecosystem-info p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .92rem;
+  line-height: 1.45;
+}
+
+.schedlab-ecosystem-info strong {
+  color: var(--fg);
+}
+
+.schedlab-btn-ecosystem {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .6rem 1.2rem;
+  font-size: .88rem;
+  font-weight: 600;
+  border-radius: var(--r-sm);
+  background: var(--lab-accent-lt);
+  color: var(--lab-accent);
+  border: 1px solid var(--lab-accent-border);
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-decoration: none;
+  transition: background var(--tr), color var(--tr), border-color var(--tr), transform var(--tr);
+}
+
+.schedlab-btn-ecosystem:hover {
+  background: var(--lab-accent);
+  color: #ffffff;
+  border-color: var(--lab-accent);
+}
+
+@media (max-width: 768px) {
+  .schedlab-ecosystem-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.2rem;
+    gap: 1rem;
+  }
+  .schedlab-btn-ecosystem {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ─── Grid + Cards ────────────────────────────────────────────────── */

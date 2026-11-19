@@ -28,6 +28,8 @@ import {
   UserIcon,
   LogOutIcon,
   ShieldCheckIcon,
+  FlaskIcon,
+  ExternalLinkIcon,
 } from './components/Icons'
 
 /** Ícone sol para tema claro */
@@ -131,6 +133,16 @@ function Header() {
                 ) : null}
                 <span>Perfil</span>
               </NavLink>
+              <a
+                href="https://schedlab-puce.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="schedlab-nav-link"
+                aria-label="Abrir SchedLab — laboratório 3D de cuidados capilares (abre em nova aba)"
+              >
+                <FlaskIcon size={14} />
+                <span>SchedLab</span>
+              </a>
               <button
                 className="btn ghost sm"
                 style={{ marginLeft: '.5rem', padding: '.32rem .75rem' }}
@@ -140,9 +152,21 @@ function Header() {
               </button>
             </>
           ) : (
-            <Link to="/entrar" className="btn sm">
-              Entrar
-            </Link>
+            <>
+              <a
+                href="https://schedlab-puce.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="schedlab-nav-link"
+                aria-label="Abrir SchedLab — laboratório 3D de cuidados capilares (abre em nova aba)"
+              >
+                <FlaskIcon size={14} />
+                <span>SchedLab</span>
+              </a>
+              <Link to="/entrar" className="btn sm">
+                Entrar
+              </Link>
+            </>
           )}
         </nav>
 
@@ -208,6 +232,19 @@ function Header() {
                 <span>Meu Perfil</span>
               </NavLink>
               <div className="divider" style={{ margin: '.5rem 0' }} />
+              <a
+                href="https://schedlab-puce.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mobile-schedlab-link"
+                onClick={close}
+                aria-label="Abrir SchedLab — laboratório 3D de cuidados capilares (abre em nova aba)"
+              >
+                <FlaskIcon size={17} style={{ color: 'var(--lab-accent, #1fa87d)' }} />
+                <span>SchedLab</span>
+                <span className="schedlab-badge">3D</span>
+                <ExternalLinkIcon size={13} style={{ marginLeft: 'auto', opacity: 0.6 }} />
+              </a>
               <button
                 className="menu-link"
                 onClick={() => {
@@ -224,6 +261,19 @@ function Header() {
               <NavLink to="/" onClick={close}>
                 Início
               </NavLink>
+              <a
+                href="https://schedlab-puce.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mobile-schedlab-link"
+                onClick={close}
+                aria-label="Abrir SchedLab — laboratório 3D de cuidados capilares (abre em nova aba)"
+              >
+                <FlaskIcon size={17} style={{ color: 'var(--lab-accent, #1fa87d)' }} />
+                <span>SchedLab</span>
+                <span className="schedlab-badge">3D</span>
+                <ExternalLinkIcon size={13} style={{ marginLeft: 'auto', opacity: 0.6 }} />
+              </a>
               <Link to="/entrar" className="btn" style={{ marginTop: '1rem' }} onClick={close}>
                 Entrar ou Cadastrar
               </Link>

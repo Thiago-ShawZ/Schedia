@@ -215,5 +215,16 @@ export function ShieldCheckIcon({ size = 18, ...props }: IconProps) {
   )
 }
 
+export function FlaskIcon({ size = 18, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M10 2v7.31L4.2 18.06A2 2 0 0 0 5.86 21h12.28a2 2 0 0 0 1.66-2.94L14 9.31V2" />
+      <line x1="8" x2="16" y1="2" y2="2" />
+      <line x1="6.5" x2="17.5" y1="15" y2="15" />
+    </svg>
+  )
+}
+
+
 
 
