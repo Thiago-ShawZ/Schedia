@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { brl, normalizeWhatsAppPhone } from '../lib/format'
 import Reserva, { type Cfg } from '../components/Reserva'
-import SchediaAssist from '../components/SchediaAssist'
+import { useSchediaAssist } from '../context/SchediaAssistContext'
 import { LocationIcon, ClockIcon, BuildingIcon, WhatsAppIcon } from '../components/Icons'
 
 type Biz = {
@@ -37,6 +37,33 @@ export default function Negocio() {
   const [prods, setProds] = useState<Prod[]>([])
   const [cfg, setCfg] = useState<Cfg | null>(null)
   const [sel, setSel] = useState<Item | null>(null)
+  const { setBizContext, clearBizContext } = useSchediaAssist()
+
+  // Conecta os dados reais do estabelecimento ao assistente virtual Schedia Assist
+  useEffect(() => {
+    if (biz) {
+      setBizContext({
+        biz: {
+          id: biz.id,
+          name: biz.name,
+          description: biz.description,
+          city: biz.city,
+          phone: biz.phone,
+          slug,
+        },
+        services: svcs,
+        products: prods,
+        settings: cfg,
+        currentService: sel,
+      })
+    }
+  }, [biz, svcs, prods, cfg, sel, slug, setBizContext])
+
+  useEffect(() => {
+    return () => {
+      clearBizContext()
+    }
+  }, [clearBizContext])
 
   useEffect(() => {
     ;(async () => {
@@ -237,15 +264,6 @@ export default function Negocio() {
           )}
         </>
       )}
-
-      {/* Assistente inteligente Schedia Assist */}
-      <SchediaAssist
-        biz={biz}
-        services={svcs}
-        products={prods}
-        settings={cfg}
-        currentService={sel}
-      />
     </main>
   )
 }

@@ -53,7 +53,7 @@ function formatBrl(cents: number): string {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
-// Monta o prompt do sistema com base estrita nos dados do estabelecimento
+// Monta o prompt do sistema com base estrita nos dados do estabelecimento ou no escopo geral da plataforma
 function buildSystemInstruction(ctx: BusinessContext): string {
   const biz = ctx.business || {}
   const svcs = ctx.services || []
@@ -61,7 +61,27 @@ function buildSystemInstruction(ctx: BusinessContext): string {
   const cfg = ctx.settings || {}
   const current = ctx.currentBooking
 
-  let instruction = `Você é o Schedia Assist, o assistente virtual de inteligência artificial oficial de atendimento do estabelecimento "${biz.name || 'Estabelecimento Parceiro Schedia'}".
+  // Modo Assistente de Plataforma Geral (quando o usuário navega pelo Hub, Agendamentos, Perfil, etc.)
+  if (!biz.name) {
+    return `Você é o Schedia Assist, o assistente virtual de inteligência artificial oficial da plataforma Schedia.
+
+SUAS DIRETRIZES FUNDAMENTAIS:
+1. Você ajuda clientes e usuários a navegar na plataforma Schedia, compreender como agendar atendimentos, consultar reservas, acessar perfis e descobrir novos recursos como o SchedLab 3D.
+2. Seja sempre educado, acolhedor, profissional, objetivo e prestativo em Português do Brasil (PT-BR). Responda com parágrafos concisos ou listas de tópicos quando aplicável.
+3. CONHECIMENTO DA PLATAFORMA SCHEDIA:
+   - Descobrir / Hub (/hub): página onde o cliente explora barbearias, salões de beleza, clínicas de estética e estúdios parceiros, filtra por cidade e categoria e acessa os perfis públicos para agendamento online.
+   - Meus Agendamentos (/agendamentos): calendário mensal interativo onde o usuário pode visualizar todas as suas reservas agendadas, conferir data, horário, profissional, valor e status, além de entrar em contato com a loja ou cancelar reservas com antecedência.
+   - Perfil (/perfil): área onde o cliente atualiza sua foto, confere seu e-mail cadastrado e encerra sua sessão com segurança ("Sair da conta").
+   - Gestão / Meus Negócios (/painel): área dos donos de estabelecimentos para gerenciar sua agenda, cadastrar catálogo de serviços e produtos, criar bloqueios de horários e configurar expediente.
+   - SchedLab 3D: laboratório 3D interativo de análise e simulação capilar, acessível pelo menu superior do sistema.
+4. REGRAS GERAIS DE AGENDAMENTO:
+   - Para agendar: oriente o usuário a acessar "Descobrir" (Hub), escolher o estabelecimento desejado e clicar no botão "Agendar" do serviço que quer realizar.
+   - Cancelamentos e reagendamentos: devem ser feitos pela tela "Agendamentos" respeitando o prazo mínimo de antecedência estipulado pelo negócio.
+   - Você NÃO pode realizar agendamentos ou cancelamentos diretamente pela conversa, mas orienta os passos exatos na interface.
+5. Em caso de dúvidas médicas, de saúde ou procedimentos invasivos, recomende sempre consulta prévia com profissionais especializados.`
+  }
+
+  let instruction = `Você é o Schedia Assist, o assistente virtual de inteligência artificial oficial de atendimento do estabelecimento "${biz.name}".
 
 SUAS DIRETRIZES FUNDAMENTAIS:
 1. Você ajuda clientes a esclarecer dúvidas sobre os serviços, preços, duração, regras de agendamento e informações gerais antes e durante a reserva.
@@ -158,12 +178,39 @@ serve(async (req) => {
 
     // Se a chave não estiver configurada no Supabase Secrets, gera resposta segura baseada no catálogo do negócio
     if (!geminiApiKey) {
-      const bizName = context?.business?.name || 'nosso estabelecimento'
+      const bizName = context?.business?.name
       const svcs = context?.services || []
-
-      // Resposta inteligente de fallback local enquanto a chave não for inserida
-      let fallbackReply = `Olá! Sou o assistente virtual do **${bizName}**.\n\n`
       const lower = cleanMessage.toLowerCase()
+
+      // Resposta inteligente de fallback local para modo Plataforma Geral
+      if (!bizName) {
+        let platformReply = `Olá! Sou o **Schedia Assist**, assistente virtual oficial da plataforma Schedia.\n\n`
+        if (lower.includes('agendar') || lower.includes('reservar') || lower.includes('marcar') || lower.includes('horário')) {
+          platformReply += `Para agendar um serviço, acesse a aba **Descobrir** no menu superior, escolha o estabelecimento desejado e selecione o serviço e horário de sua preferência.`
+        } else if (lower.includes('cancelar') || lower.includes('reagendar') || lower.includes('meus agendamentos') || lower.includes('ver agendamento')) {
+          platformReply += `Você pode acompanhar todas as suas reservas agendadas e realizar cancelamentos acessando a página **Agendamentos** no menu superior, com visualização em calendário mensal interativo.`
+        } else if (lower.includes('schedlab') || lower.includes('3d') || lower.includes('cabelo')) {
+          platformReply += `O **SchedLab** é o nosso laboratório 3D interativo de análise e cuidados capilares! Você pode explorá-lo clicando no botão **SchedLab 3D** no menu superior.`
+        } else if (lower.includes('cadastrar') || lower.includes('negócio') || lower.includes('painel') || lower.includes('empresa') || lower.includes('proprietário')) {
+          platformReply += `Para cadastrar seu estabelecimento ou gerenciar horários e serviços, acesse **Meus Negócios** no menu superior.`
+        } else {
+          platformReply += `Posso te orientar a encontrar estabelecimentos no Hub, gerenciar seus agendamentos, tirar dúvidas sobre a plataforma ou explorar o SchedLab 3D. Em que posso te ajudar?`
+        }
+
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            reply: platformReply,
+            model: 'schedia-assist-platform-fallback',
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      // Resposta inteligente de fallback local para modo Estabelecimento
+      let fallbackReply = `Olá! Sou o assistente virtual do **${bizName}**.\n\n`
 
       if (lower.includes('preço') || lower.includes('valor') || lower.includes('quanto custa') || lower.includes('serviço')) {
         if (svcs.length > 0) {
