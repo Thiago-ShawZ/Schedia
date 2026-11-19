@@ -1,8 +1,15 @@
 -- Schedia · Fase 1 · schema base + RLS + anti-sobreposição
 create extension if not exists btree_gist;
 
-create type public.member_role as enum ('owner','manager');
-create type public.appt_status as enum ('confirmed','cancelled','completed','no_show');
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'member_role') then
+    create type public.member_role as enum ('owner','manager');
+  end if;
+  if not exists (select 1 from pg_type where typname = 'appt_status') then
+    create type public.appt_status as enum ('confirmed','cancelled','completed','no_show');
+  end if;
+end $$;
 
 create table public.profiles (
   id uuid primary key references auth.users on delete cascade,
