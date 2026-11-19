@@ -234,6 +234,27 @@ export function BellIcon({ size = 18, ...props }: IconProps) {
   )
 }
 
+export function SparklesIcon({ size = 18, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" />
+      <path d="M5 3v4" />
+      <path d="M19 17v4" />
+      <path d="M3 5h4" />
+      <path d="M17 19h4" />
+    </svg>
+  )
+}
+
+export function SendIcon({ size = 16, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  )
+}
+
 
 
 
