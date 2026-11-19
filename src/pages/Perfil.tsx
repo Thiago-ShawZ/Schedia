@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import ImageUploader from '../components/ImageUploader'
+import { LogOutIcon } from '../components/Icons'
 
 export default function Perfil() {
   const { session } = useAuth()
@@ -200,6 +201,36 @@ export default function Perfil() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Sessão da conta / Sair */}
+      <div
+        className="card"
+        style={{
+          padding: '1.25rem 1.5rem',
+          marginTop: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+        }}
+      >
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Sessão ativa</h2>
+          <p style={{ color: 'var(--muted)', fontSize: '.84rem', margin: '.2rem 0 0' }}>
+            Desconectar sua conta com segurança deste dispositivo.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn ghost danger sm"
+          onClick={() => supabase.auth.signOut()}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '.4rem' }}
+        >
+          <LogOutIcon size={15} />
+          <span>Sair da conta</span>
+        </button>
       </div>
     </main>
   )

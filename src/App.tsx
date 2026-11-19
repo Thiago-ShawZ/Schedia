@@ -124,16 +124,6 @@ function Header() {
               <NavLink to="/agendamentos">Agendamentos</NavLink>
               <NavLink to="/painel">Meus Negócios</NavLink>
               {isApprover && <NavLink to="/aprovadores">Aprovadores</NavLink>}
-              <NavLink to="/perfil" style={{ display: 'inline-flex', alignItems: 'center', gap: '.4rem' }}>
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt="Perfil"
-                    style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
-                  />
-                ) : null}
-                <span>Perfil</span>
-              </NavLink>
               <a
                 href="https://schedlab-puce.vercel.app"
                 target="_blank"
@@ -144,13 +134,6 @@ function Header() {
                 <FlaskIcon size={14} />
                 <span>SchedLab</span>
               </a>
-              <button
-                className="btn ghost sm"
-                style={{ marginLeft: '.5rem', padding: '.32rem .75rem' }}
-                onClick={() => supabase.auth.signOut()}
-              >
-                Sair
-              </button>
             </>
           ) : (
             <>
@@ -171,10 +154,31 @@ function Header() {
           )}
         </nav>
 
-        {/* Theme toggle + Notifications + Mobile Hamburger */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', flexShrink: 0 }}>
+        {/* Right side controls: Notifications + Theme toggle + Perfil (extreme right) + Mobile Hamburger */}
+        <div className="top-actions">
           {session && <NotificationsBell />}
           <ThemeToggleBtn />
+          {session && (
+            <NavLink
+              to="/perfil"
+              className="top-profile-btn"
+              title="Meu Perfil"
+              aria-label="Meu Perfil"
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Perfil"
+                  className="top-profile-avatar"
+                />
+              ) : (
+                <span className="top-profile-avatar-fallback">
+                  <UserIcon size={15} />
+                </span>
+              )}
+              <span className="top-profile-label">Perfil</span>
+            </NavLink>
+          )}
           <button
             className="nav-toggle"
             aria-label={open ? 'Fechar menu' : 'Abrir menu'}

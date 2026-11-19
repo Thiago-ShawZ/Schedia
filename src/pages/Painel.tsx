@@ -294,55 +294,57 @@ export function PainelLayout() {
       <div className="panel-layout">
         {/* Desktop Dedicated Sidebar */}
         <aside className="sidebar">
-          <div className="sidebar-header">
-            <Link to="/painel" className="sidebar-back">
-              <ArrowLeftIcon size={13} />
-              <span>Meus Negócios</span>
-            </Link>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem', marginTop: '.35rem' }}>
-              <div className="avatar" style={{ width: '38px', height: '38px', fontSize: '.95rem' }}>
-                {biz?.logo_url ? (
-                  <img src={biz.logo_url} alt={biz.name} className="avatar-img" loading="lazy" decoding="async" />
-                ) : (
-                  biz?.name?.charAt(0) ?? 'N'
-                )}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div className="sidebar-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {biz?.name || 'Carregando...'}
+          <div className="sidebar-sticky-content">
+            <div className="sidebar-header">
+              <Link to="/painel" className="sidebar-back">
+                <ArrowLeftIcon size={13} />
+                <span>Meus Negócios</span>
+              </Link>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem', marginTop: '.35rem' }}>
+                <div className="avatar" style={{ width: '38px', height: '38px', fontSize: '.95rem' }}>
+                  {biz?.logo_url ? (
+                    <img src={biz.logo_url} alt={biz.name} className="avatar-img" loading="lazy" decoding="async" />
+                  ) : (
+                    biz?.name?.charAt(0) ?? 'N'
+                  )}
                 </div>
-                <small style={{ fontSize: '.72rem', color: 'var(--muted)' }}>Painel de Gestão</small>
+                <div style={{ minWidth: 0 }}>
+                  <div className="sidebar-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {biz?.name || 'Carregando...'}
+                  </div>
+                  <small style={{ fontSize: '.72rem', color: 'var(--muted)' }}>Painel de Gestão</small>
+                </div>
               </div>
+              {biz?.slug && (
+                <a
+                  href={`/n/${biz.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '.35rem',
+                    fontSize: '.75rem',
+                    color: 'var(--primary)',
+                    marginTop: '.6rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <span>Ver página pública</span>
+                  <ExternalLinkIcon size={12} />
+                </a>
+              )}
             </div>
-            {biz?.slug && (
-              <a
-                href={`/n/${biz.slug}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '.35rem',
-                  fontSize: '.75rem',
-                  color: 'var(--primary)',
-                  marginTop: '.6rem',
-                  fontWeight: 600,
-                }}
-              >
-                <span>Ver página pública</span>
-                <ExternalLinkIcon size={12} />
-              </a>
-            )}
-          </div>
 
-          <nav className="sidebar-nav" aria-label="Navegação administrativa">
-            {navItems.map(({ path, label, Icon }) => (
-              <NavLink key={path} to={path}>
-                <Icon size={16} />
-                <span>{label}</span>
-              </NavLink>
-            ))}
-          </nav>
+            <nav className="sidebar-nav" aria-label="Navegação administrativa">
+              {navItems.map(({ path, label, Icon }) => (
+                <NavLink key={path} to={path}>
+                  <Icon size={16} />
+                  <span>{label}</span>
+                </NavLink>
+              ))}
+            </nav>
+          </div>
         </aside>
 
         {/* Panel Viewport */}
