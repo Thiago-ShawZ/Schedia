@@ -251,7 +251,7 @@ main {
 }
 
 .narrow {
-  max-width: 440px;
+  max-width: 520px;
   margin-inline: auto
 }
 
@@ -306,7 +306,9 @@ main {
 
 .top-nav a.active {
   color: var(--primary);
-  font-weight: 600
+  font-weight: 600;
+  background: var(--primary-lt);
+  border-radius: var(--r-sm)
 }
 
 .nav-toggle {
@@ -900,6 +902,7 @@ a.card:hover {
   height: calc(100vh - var(--hh));
   overflow-y: auto;
   background: var(--bg-sub);
+  box-shadow: 2px 0 8px rgba(0,0,0,.06);
 }
 
 .sidebar-header {
@@ -997,6 +1000,7 @@ a.card:hover {
 .panel-mobile-nav a {
   display: inline-flex;
   align-items: center;
+  gap: .4rem;
   white-space: nowrap;
   flex-shrink: 0;
   padding: .75rem .85rem;
@@ -1372,6 +1376,39 @@ textarea {
   color: var(--fg)
 }
 
+/* Tabs de seção (usado em MeusAgendamentos) */
+.section-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.25rem;
+  gap: 0;
+}
+
+.section-tab-btn {
+  flex: 1;
+  padding: .7rem 1rem;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  background: none;
+  font: 500 .9rem/1 inherit;
+  color: var(--muted);
+  cursor: pointer;
+  min-height: 44px;
+  transition: all var(--tr);
+  position: relative;
+}
+
+.section-tab-btn:hover {
+  color: var(--fg);
+  background: var(--bg-sub);
+}
+
+.section-tab-btn[aria-selected="true"] {
+  color: var(--primary);
+  font-weight: 700;
+  border-bottom-color: var(--primary);
+}
+
 /* ─── Chips ───────────────────────────────────────────────────────── */
 .chips {
   display: flex;
@@ -1400,7 +1437,8 @@ textarea {
   background: var(--primary);
   border-color: var(--primary);
   color: var(--on-p);
-  font-weight: 600
+  font-weight: 600;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 35%, transparent)
 }
 
 /* ─── Booking / Steps ─────────────────────────────────────────────── */
@@ -1664,22 +1702,28 @@ textarea {
   border-radius: var(--r);
   padding: .85rem;
   text-align: center;
+  transition: border-color var(--tr), box-shadow var(--tr);
+}
+
+.stat:hover {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--line));
+  box-shadow: var(--sh);
 }
 
 .stat-val {
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: var(--primary);
   line-height: 1
 }
 
 .stat-lbl {
-  font-size: .7rem;
+  font-size: .68rem;
   color: var(--muted);
   font-weight: 700;
-  margin-top: .2rem;
+  margin-top: .3rem;
   text-transform: uppercase;
-  letter-spacing: .05em
+  letter-spacing: .06em
 }
 
 /* ─── Section Header ──────────────────────────────────────────────── */
@@ -1740,8 +1784,39 @@ textarea {
   display: block
 }
 
+.uploader-overlay {
+  pointer-events: none;
+}
+
 .uploader-overlay:hover {
   opacity: 1 !important
+}
+
+/* Hover no container pai para mostrar o overlay da foto */
+[title="Clique para alterar a imagem"]:hover .uploader-overlay {
+  opacity: 1 !important;
+}
+
+/* Profile hero card */
+.profile-hero-card {
+  background: linear-gradient(135deg, var(--primary-lt) 0%, var(--card) 65%);
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--line));
+  padding: 1.5rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* Badge aliases */
+.badge-warning {
+  background: var(--warn-lt);
+  color: var(--warn)
+}
+
+.badge-danger {
+  background: var(--err-lt);
+  color: var(--err)
 }
 
 /* ─── Empty State ─────────────────────────────────────────────────── */
@@ -1870,6 +1945,11 @@ textarea {
 
   .stat-grid {
     grid-template-columns: repeat(2, 1fr)
+  }
+
+  /* Stat value menor para valores monetários longos em 2-colunas */
+  .stat-val {
+    font-size: 1.1rem
   }
 
   .search-area select {

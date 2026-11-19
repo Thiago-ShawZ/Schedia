@@ -116,8 +116,8 @@ export default function Agenda() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '.75rem' }}>
-        <div>
+      <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ marginBottom: '.75rem' }}>
           <h1 style={{ fontSize: '1.4rem', margin: 0 }}>Agenda de Atendimentos</h1>
           <p style={{ color: 'var(--muted)', fontSize: '.88rem', margin: '.2rem 0 0' }}>
             Acompanhe suas reservas confirmadas e finalize atendimentos.

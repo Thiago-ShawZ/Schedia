@@ -80,17 +80,17 @@ export default function Perfil() {
   return (
     <main className="narrow">
       {/* User Header Profile Card */}
-      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <div className="avatar" style={{ width: '58px', height: '58px', fontSize: '1.3rem' }}>
+      <div className="card profile-hero-card">
+        <div className="avatar" style={{ width: '68px', height: '68px', fontSize: '1.5rem', flexShrink: 0 }}>
           {avatarUrl ? (
             <img src={avatarUrl} alt="Avatar" className="avatar-img" />
           ) : (
             (name || session?.user.email || 'U').charAt(0).toUpperCase()
           )}
         </div>
-        <div>
-          <h1 style={{ fontSize: '1.25rem', margin: 0 }}>{name || 'Meu Perfil'}</h1>
-          <small style={{ color: 'var(--muted)' }}>{session?.user.email}</small>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: '1.25rem', margin: 0, lineHeight: 1.2 }}>{name || 'Meu Perfil'}</h1>
+          <p style={{ color: 'var(--muted)', fontSize: '.84rem', margin: '.25rem 0 0' }}>{session?.user.email}</p>
         </div>
       </div>
 
