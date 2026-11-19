@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { brl, normalizeWhatsAppPhone } from '../lib/format'
 import Reserva, { type Cfg } from '../components/Reserva'
+import SchediaAssist from '../components/SchediaAssist'
 import { LocationIcon, ClockIcon, BuildingIcon, WhatsAppIcon } from '../components/Icons'
 
 type Biz = {
@@ -236,6 +237,15 @@ export default function Negocio() {
           )}
         </>
       )}
+
+      {/* Assistente inteligente Schedia Assist */}
+      <SchediaAssist
+        biz={biz}
+        services={svcs}
+        products={prods}
+        settings={cfg}
+        currentService={sel}
+      />
     </main>
   )
 }
