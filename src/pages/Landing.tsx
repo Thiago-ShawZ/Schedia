@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { SearchIcon, ClockIcon, BuildingIcon } from '../components/Icons'
+import { SearchIcon, ClockIcon, BuildingIcon, FlaskIcon, ExternalLinkIcon } from '../components/Icons'
 
 const features = [
   {
@@ -60,6 +60,17 @@ export default function Landing() {
               Cadastrar meu negócio
             </Link>
           )}
+          <a
+            className="btn ghost schedlab-hero-cta"
+            href="https://schedlab-puce.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Abrir SchedLab — laboratório 3D de cuidados capilares (abre em nova aba)"
+            style={{ padding: '.75rem 1.5rem', fontSize: '.95rem' }}
+          >
+            <FlaskIcon size={16} />
+            <span>Explorar o SchedLab 3D</span>
+          </a>
         </div>
 
         <div className="hero-features">
@@ -86,6 +97,28 @@ export default function Landing() {
               </p>
             </article>
           ))}
+        </div>
+
+        <div className="schedlab-ecosystem-banner">
+          <div className="schedlab-ecosystem-icon">
+            <FlaskIcon size={22} />
+          </div>
+          <div className="schedlab-ecosystem-info">
+            <span className="schedlab-ecosystem-tag">Ecossistema Sched*</span>
+            <p>
+              Conheça o SchedLab — laboratório visual 3D para explorar produtos e tipos de cabelo. Parte do ecossistema Sched*.
+            </p>
+          </div>
+          <a
+            href="https://schedlab-puce.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="schedlab-btn-ecosystem"
+            aria-label="Abrir SchedLab — laboratório 3D de cuidados capilares (abre em nova aba)"
+          >
+            <span>Abrir SchedLab</span>
+            <ExternalLinkIcon size={15} />
+          </a>
         </div>
       </section>
     </main>
