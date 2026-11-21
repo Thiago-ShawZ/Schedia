@@ -23,6 +23,7 @@ type M = {
     logo_url?: string | null
     approval_status?: 'pending' | 'approved' | 'rejected'
     is_published?: boolean
+    archived_at?: string | null
   } | null
   application?: {
     id: string
@@ -39,7 +40,7 @@ export function PainelSeletor() {
     ;(async () => {
       const { data: mems } = await supabase
         .from('business_memberships')
-        .select('business_id,role,businesses(name,slug,city,logo_url,approval_status,is_published)')
+        .select('business_id,role,businesses(name,slug,city,logo_url,approval_status,is_published,archived_at)')
         .eq('status', 'active')
 
       if (mems && mems.length > 0) {
@@ -113,6 +114,7 @@ export function PainelSeletor() {
             const isRejected = status === 'rejected'
             const isPending = status === 'pending'
             const hasApp = !!m.application
+            const isArchived = !!m.businesses?.archived_at
 
             return (
               <div
@@ -126,7 +128,9 @@ export function PainelSeletor() {
                       <span className="badge badge-info">
                         {m.role === 'owner' ? 'Proprietário' : m.role}
                       </span>
-                      {isApproved ? (
+                      {isArchived ? (
+                        <span className="badge badge-warning">Desativado</span>
+                      ) : isApproved ? (
                         <span className="badge badge-ok">Aprovado</span>
                       ) : isRejected ? (
                         <span className="badge badge-danger">Reprovado</span>

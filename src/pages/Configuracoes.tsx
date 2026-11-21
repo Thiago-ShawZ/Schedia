@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import ImageUploader from '../components/ImageUploader'
 import { AlertCircleIcon, CheckIcon } from '../components/Icons'
@@ -458,6 +458,203 @@ export default function Configuracoes() {
           </button>
         </div>
       </form>
+
+      {/* ═══ ZONA DE PERIGO ═══ */}
+      <DangerZone businessId={id!} businessName={biz.name} />
     </>
+  )
+}
+
+/* ─────────────────────────────────────────
+   Zona de Perigo: Desativar / Reativar / Excluir
+───────────────────────────────────────── */
+function DangerZone({ businessId, businessName }: { businessId: string; businessName: string }) {
+  const navigate = useNavigate()
+  const [archived, setArchived] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteInput, setDeleteInput] = useState('')
+
+  // Carrega estado archived_at ao montar
+  useEffect(() => {
+    supabase
+      .from('businesses')
+      .select('archived_at')
+      .eq('id', businessId)
+      .single()
+      .then(({ data }) => {
+        setArchived(data ? !!data.archived_at : false)
+      })
+  }, [businessId])
+
+  const setError = (text: string) => setMsg('Erro: ' + text)
+  const setOk = (text: string) => setMsg(text)
+
+  const handleDeactivate = async () => {
+    if (!confirm('Desativar este negócio? Ele ficará invisível no Hub, mas os dados serão mantidos. Você poderá reativá-lo a qualquer momento.')) return
+    setBusy(true); setMsg('')
+    const { error } = await supabase.rpc('deactivate_business', { p_id: businessId })
+    if (error) {
+      setError(error.message === 'forbidden' ? 'Sem permissão para desativar este negócio.' : error.message)
+    } else {
+      setArchived(true)
+      setOk('Negócio desativado com sucesso.')
+    }
+    setBusy(false)
+  }
+
+  const handleReactivate = async () => {
+    if (!confirm('Reativar este negócio?')) return
+    setBusy(true); setMsg('')
+    const { error } = await supabase.rpc('reactivate_business', { p_id: businessId })
+    if (error) {
+      setError(error.message === 'forbidden' ? 'Sem permissão para reativar este negócio.' : error.message)
+    } else {
+      setArchived(false)
+      setOk('Negócio reativado.')
+    }
+    setBusy(false)
+  }
+
+  const handleDelete = async () => {
+    if (deleteInput !== businessName) return
+    setBusy(true); setMsg('')
+    const { error } = await supabase.rpc('delete_business_if_safe', { p_id: businessId })
+    if (error) {
+      if (error.message.includes('forbidden')) setError('Sem permissão para excluir este negócio.')
+      else if (error.message.includes('has_future_appointments')) setError('Existem agendamentos confirmados futuros. Cancele-os antes de excluir.')
+      else setError(error.message)
+      setBusy(false)
+    } else {
+      navigate('/painel')
+    }
+  }
+
+  return (
+    <div
+      className="card"
+      style={{
+        marginTop: '2rem',
+        padding: '1.5rem',
+        border: '1px solid rgba(239,68,68,0.3)',
+        background: 'rgba(239,68,68,0.04)',
+      }}
+    >
+      <h2 style={{ marginTop: 0, fontSize: '1.05rem', color: '#dc2626' }}>Zona de perigo</h2>
+      <p style={{ color: 'var(--muted)', fontSize: '.86rem', marginBottom: '1.25rem' }}>
+        Ações irreversíveis ou de alto impacto. Prossiga com atenção.
+      </p>
+
+      {msg && (
+        <p
+          role="alert"
+          className="msg"
+          style={{
+            margin: '0 0 1rem',
+            background: msg.startsWith('Erro') ? 'var(--err-lt)' : 'var(--ok-lt)',
+            color: msg.startsWith('Erro') ? 'var(--err)' : 'var(--ok)',
+            borderLeftColor: msg.startsWith('Erro') ? 'var(--err)' : 'var(--ok)',
+          }}
+        >
+          {msg}
+        </p>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Desativar / Reativar */}
+        {archived === true ? (
+          <div>
+            <p style={{ fontSize: '.85rem', color: 'var(--muted)', margin: '0 0 .5rem' }}>
+              Este negócio está <strong style={{ color: '#b45309' }}>desativado</strong>. Ele não aparece no Hub nem recebe novos agendamentos.
+            </p>
+            <button
+              type="button"
+              className="btn sm"
+              style={{ background: 'var(--ok)', color: '#fff', border: 'none' }}
+              onClick={handleReactivate}
+              disabled={busy}
+            >
+              {busy ? 'Aguarde...' : 'Reativar negócio'}
+            </button>
+          </div>
+        ) : (
+          <div>
+            <p style={{ fontSize: '.85rem', color: 'var(--muted)', margin: '0 0 .5rem' }}>
+              <strong>Desativar</strong> remove o negócio do Hub temporariamente. Seus dados, serviços e histórico são preservados e você pode reativar quando quiser.
+            </p>
+            <button
+              type="button"
+              className="btn sm"
+              style={{ background: 'transparent', color: '#b45309', border: '1px solid #b45309' }}
+              onClick={handleDeactivate}
+              disabled={busy || archived === null}
+            >
+              {busy ? 'Aguarde...' : 'Desativar negócio'}
+            </button>
+          </div>
+        )}
+
+        {/* Excluir */}
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: '1rem' }}>
+          {!confirmDelete ? (
+            <div>
+              <p style={{ fontSize: '.85rem', color: 'var(--muted)', margin: '0 0 .5rem' }}>
+                <strong style={{ color: '#dc2626' }}>Excluir permanentemente</strong> apaga o negócio e todos os seus dados. Não é possível desfazer. Só é permitido se não houver agendamentos confirmados futuros.
+              </p>
+              <button
+                type="button"
+                className="btn sm"
+                style={{ background: '#dc2626', color: '#fff', border: 'none' }}
+                onClick={() => setConfirmDelete(true)}
+                disabled={busy}
+              >
+                Excluir negócio
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: '.85rem', color: '#dc2626', margin: '0 0 .75rem', fontWeight: 600 }}>
+                Para confirmar, digite o nome exato do negócio abaixo:
+              </p>
+              <code style={{ display: 'block', background: 'var(--bg-sub)', padding: '.35rem .6rem', borderRadius: '6px', fontSize: '.82rem', marginBottom: '.65rem' }}>
+                {businessName}
+              </code>
+              <input
+                type="text"
+                value={deleteInput}
+                onChange={e => setDeleteInput(e.target.value)}
+                placeholder="Nome do negócio"
+                style={{ marginBottom: '.65rem', display: 'block', width: '100%' }}
+              />
+              <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn sm"
+                  style={{
+                    background: deleteInput === businessName ? '#dc2626' : 'var(--bg-sub)',
+                    color: deleteInput === businessName ? '#fff' : 'var(--muted)',
+                    border: 'none',
+                    cursor: deleteInput === businessName ? 'pointer' : 'not-allowed',
+                  }}
+                  onClick={handleDelete}
+                  disabled={busy || deleteInput !== businessName}
+                >
+                  {busy ? 'Excluindo...' : 'Confirmar exclusão'}
+                </button>
+                <button
+                  type="button"
+                  className="btn sm ghost"
+                  onClick={() => { setConfirmDelete(false); setDeleteInput('') }}
+                  disabled={busy}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

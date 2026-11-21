@@ -162,11 +162,24 @@ function NotificationsBellInner({ onNavigate }: NotificationsBellProps) {
     if (markingAll || unreadCount === 0) return
     setMarkingAll(true)
     try {
-      await markAllAsRead()
+      const success = await markAllAsRead()
+      if (!success) {
+        throw new Error('Falha ao marcar notificações como lidas no servidor')
+      }
+      // Refetch do servidor para garantir que o estado reflita o banco
+      const [freshNotifs, freshCount] = await Promise.all([
+        fetchNotifications(30),
+        fetchUnreadCount(),
+      ])
+      setNotifications(freshNotifs)
+      setUnreadCount(freshCount)
+    } catch (err) {
+      console.error('handleMarkAll:', err)
+      // Atualização otimística como fallback visual
       const now = new Date().toISOString()
       setNotifications(prev => prev.map(n => n.read_at ? n : { ...n, read_at: now }))
       setUnreadCount(0)
-    } catch { /* ignore */ } finally {
+    } finally {
       setMarkingAll(false)
     }
   }
