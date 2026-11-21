@@ -13,6 +13,7 @@ type Biz = {
   city: string | null
   logo_url?: string | null
   phone?: string | null
+  category_custom?: string | null
   categories: { name: string } | null
 }
 type Item = {
@@ -69,7 +70,7 @@ export default function Negocio() {
     ;(async () => {
       const { data: b } = await supabase
         .from('businesses')
-        .select('id,name,description,city,logo_url,phone,categories(name)')
+        .select('id,name,description,city,logo_url,phone,category_custom,categories(name)')
         .eq('slug', slug)
         .eq('is_published', true)
         .maybeSingle()
@@ -142,7 +143,7 @@ export default function Negocio() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '.35rem' }}>
               <span className="badge badge-info">
-                {biz.categories?.name ?? 'Estabelecimento'}
+                {biz.category_custom || biz.categories?.name || 'Estabelecimento'}
               </span>
               {biz.city && (
                 <span className="badge badge-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '.3rem' }}>

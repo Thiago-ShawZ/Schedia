@@ -17,6 +17,7 @@ const ERROS: Record<string, string> = {
 export default function Configuracoes() {
   const { id } = useParams()
   const [cats, setCats] = useState<{ id: number; name: string }[]>([])
+  const [categoryCustom, setCategoryCustom] = useState('')
   const [biz, setBiz] = useState({
     name: '',
     slug: '',
@@ -48,19 +49,25 @@ export default function Configuracoes() {
           .limit(1)
           .maybeSingle(),
       ])
-      setCats(c.data ?? [])
+      const fetchedCats = c.data ?? []
+      setCats(fetchedCats)
       if (b.data) {
+        const catOutros = fetchedCats.find(cat => cat.name.toLowerCase() === 'outros')
+        const isCustomOrOutros = Boolean(b.data.category_custom) || (catOutros && b.data.category_id === catOutros.id)
         setBiz({
           name: b.data.name,
           slug: b.data.slug,
           description: b.data.description ?? '',
           city: b.data.city ?? '',
-          category_id: b.data.category_id ? String(b.data.category_id) : '',
+          category_id: isCustomOrOutros ? 'other' : (b.data.category_id ? String(b.data.category_id) : ''),
           logo_url: b.data.logo_url ?? '',
           phone: b.data.phone ?? '',
           is_published: b.data.is_published,
           approval_status: b.data.approval_status ?? 'approved',
         })
+        if (b.data.category_custom) {
+          setCategoryCustom(b.data.category_custom)
+        }
       }
       if (app.data) {
         setLatestApp(app.data)
@@ -86,6 +93,14 @@ export default function Configuracoes() {
   async function salvar(e: FormEvent) {
     e.preventDefault()
     setMsg('')
+
+    const isOther = biz.category_id === 'other'
+    const customTrim = categoryCustom.trim()
+
+    if (isOther && (customTrim.length < 2 || customTrim.length > 80)) {
+      return setMsg('Descreva o segmento da sua empresa com 2 a 80 caracteres.')
+    }
+
     const hours: Record<string, string[][]> = {}
     for (let i = 0; i < 7; i++) {
       const d = dias[i]
@@ -96,6 +111,8 @@ export default function Configuracoes() {
     }
 
     setBusy(true)
+    const catOutrosId = cats.find(c => c.name.toLowerCase() === 'outros')?.id ?? null
+
     const [a, b] = await Promise.all([
       supabase
         .from('businesses')
@@ -104,7 +121,8 @@ export default function Configuracoes() {
           description: biz.description.trim() || null,
           city: biz.city.trim() || null,
           phone: biz.phone.trim() || null,
-          category_id: biz.category_id ? Number(biz.category_id) : null,
+          category_id: isOther ? catOutrosId : (biz.category_id ? Number(biz.category_id) : null),
+          category_custom: isOther ? customTrim : null,
           logo_url: biz.logo_url.trim() || null,
         })
         .eq('id', id),
@@ -285,14 +303,21 @@ export default function Configuracoes() {
               Categoria principal
               <select
                 value={biz.category_id}
-                onChange={e => setBiz({ ...biz, category_id: e.target.value })}
+                onChange={e => {
+                  const val = e.target.value
+                  setBiz({ ...biz, category_id: val })
+                  if (val !== 'other') {
+                    setCategoryCustom('')
+                  }
+                }}
               >
                 <option value="">Selecione uma categoria...</option>
-                {cats.map(c => (
+                {cats.filter(c => c.name.toLowerCase() !== 'outros').map(c => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
+                <option value="other">Outros (outro segmento)</option>
               </select>
             </label>
             <label>
@@ -304,6 +329,23 @@ export default function Configuracoes() {
               />
             </label>
           </div>
+
+          {biz.category_id === 'other' && (
+            <label>
+              Descreva o segmento da sua empresa
+              <input
+                required
+                minLength={2}
+                maxLength={80}
+                value={categoryCustom}
+                onChange={e => setCategoryCustom(e.target.value)}
+                placeholder="Ex.: Pet shop, Clínica de fisioterapia, Estúdio de tatuagem"
+              />
+              <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
+                Informe o ramo de atividade específico da sua empresa (2 a 80 caracteres).
+              </small>
+            </label>
+          )}
 
           <label>
             Telefone / WhatsApp comercial

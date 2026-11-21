@@ -43,26 +43,48 @@ export interface NotificationItem {
 }
 
 export async function fetchNotifications(limit = 30, onlyUnread = false): Promise<NotificationItem[]> {
-  const { data, error } = await supabase.rpc('get_my_notifications', {
-    p_limit: limit,
-    p_only_unread: onlyUnread,
-  })
+  try {
+    const { data, error } = await supabase.rpc('get_my_notifications', {
+      p_limit: limit,
+      p_only_unread: onlyUnread,
+    })
 
-  if (error) {
-    console.error('Erro ao buscar notificações:', error)
+    if (error) {
+      const query = supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (onlyUnread) {
+        query.is('read_at', null)
+      }
+
+      const direct = await query
+      if (direct.data) return direct.data as NotificationItem[]
+      return []
+    }
+
+    return (data as NotificationItem[]) || []
+  } catch {
     return []
   }
-
-  return (data as NotificationItem[]) || []
 }
 
 export async function fetchUnreadCount(): Promise<number> {
-  const { data, error } = await supabase.rpc('count_unread_notifications')
-  if (error) {
-    console.error('Erro ao contar notificações não lidas:', error)
+  try {
+    const { data, error } = await supabase.rpc('count_unread_notifications')
+    if (error) {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .is('read_at', null)
+      return count ?? 0
+    }
+    return typeof data === 'number' ? data : 0
+  } catch {
     return 0
   }
-  return typeof data === 'number' ? data : 0
 }
 
 export async function markAsRead(id: string): Promise<boolean> {

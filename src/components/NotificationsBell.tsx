@@ -191,8 +191,14 @@ function NotificationsBellInner({ onNavigate }: NotificationsBellProps) {
       </button>
 
       {open && (
-        <div className="notif-dropdown" role="region" aria-label="Painel de notificações">
-          <div className="notif-header">
+        <>
+          <div
+            className="notif-mobile-backdrop"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="notif-dropdown" role="region" aria-label="Painel de notificações">
+            <div className="notif-header">
             <div className="notif-header-title">
               <span>Notificações</span>
               {unreadCount > 0 && (
@@ -249,9 +255,10 @@ function NotificationsBellInner({ onNavigate }: NotificationsBellProps) {
             )}
           </div>
         </div>
-      )}
-    </div>
-  )
+      </>
+    )}
+  </div>
+)
 }
 
 export function NotificationsBell(props: NotificationsBellProps) {

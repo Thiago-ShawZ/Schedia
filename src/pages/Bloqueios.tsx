@@ -189,24 +189,35 @@ export default function Bloqueios() {
           <li className="card center">Nenhum horário bloqueado programado para o futuro.</li>
         )}
         {items.map(b => (
-          <li key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.25rem' }}>
+          <li
+            key={b.id}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '.75rem',
+              padding: '1rem 1.25rem',
+            }}
+          >
+            <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.25rem' }}>
                 <span className="badge badge-warn" style={{ display: 'inline-flex', alignItems: 'center', gap: '.25rem' }}>
                   <BanIcon size={12} />
                   Bloqueado
                 </span>
-                <strong style={{ fontSize: '.95rem' }}>
+                <strong style={{ fontSize: '.95rem', wordBreak: 'break-word' }}>
                   {fmt(b.starts_at)} → {fmt(b.ends_at)}
                 </strong>
               </div>
-              <small style={{ color: 'var(--muted)' }}>
+              <small style={{ color: 'var(--muted)', display: 'block', wordBreak: 'break-word' }}>
                 {b.reason ? `Motivo: ${b.reason}` : 'Sem motivo informado'}
               </small>
             </div>
             <button
               className="btn sm danger"
               onClick={() => remove(b)}
+              style={{ flexShrink: 0 }}
             >
               Remover
             </button>
