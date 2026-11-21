@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import {
   ShieldCheckIcon,
   CheckIcon,
   AlertCircleIcon,
   LocationIcon,
-  ArrowLeftIcon,
   ExternalLinkIcon,
   WhatsAppIcon,
+  BuildingIcon,
+  UserIcon,
+  CameraIcon,
 } from '../components/Icons'
 
 type ApplicationListItem = {
@@ -121,6 +124,30 @@ export default function Aprovadores() {
   useEffect(() => {
     carregarLista(filter, 0, true)
   }, [filter])
+
+  // Bloqueio de rolagem do body e suporte a Escape quando o modal estiver aberto
+  useEffect(() => {
+    if (selectedId) {
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          if (activePhoto) {
+            setActivePhoto(null)
+          } else {
+            fecharDetalhes()
+          }
+        }
+      }
+
+      window.addEventListener('keydown', handleKeyDown)
+      return () => {
+        document.body.style.overflow = originalOverflow
+        window.removeEventListener('keydown', handleKeyDown)
+      }
+    }
+  }, [selectedId, activePhoto])
 
   async function carregarLista(status: string, offset: number, reset = false) {
     if (reset) {
@@ -241,64 +268,56 @@ export default function Aprovadores() {
     <main className="container" style={{ padding: '2rem 1rem 4rem' }}>
       {/* Cabeçalho */}
       <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.35rem' }}>
-          <div style={{ color: 'var(--primary)', display: 'inline-flex' }}>
-            <ShieldCheckIcon size={26} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.65rem', marginBottom: '.35rem' }}>
+          <div
+            style={{
+              color: 'var(--primary)',
+              background: 'var(--primary-lt)',
+              width: '40px',
+              height: '40px',
+              borderRadius: 'var(--r-md)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <ShieldCheckIcon size={24} />
           </div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>
-            Painel de Aprovadores
-          </h1>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--fg)' }}>
+              Painel de Aprovadores
+            </h1>
+            <p style={{ color: 'var(--muted)', fontSize: '.88rem', margin: '.15rem 0 0' }}>
+              Homologação e análise cadastral dos novos negócios cadastrados no Schedia.
+            </p>
+          </div>
         </div>
-        <p style={{ color: 'var(--muted)', fontSize: '.9rem', margin: 0 }}>
-          Homologação e análise cadastral dos novos negócios cadastrados no Schedia.
-        </p>
       </div>
 
-      {/* Abas de filtro */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '.5rem',
-          borderBottom: '1px solid var(--line)',
-          marginBottom: '1.5rem',
-        }}
-      >
+      {/* Abas de filtro estilizadas */}
+      <div className="section-tabs" style={{ maxWidth: '480px', marginBottom: '1.75rem' }}>
         <button
-          className={`btn ${filter === 'pending' ? '' : 'ghost'}`}
+          type="button"
+          className="section-tab-btn"
+          aria-selected={filter === 'pending'}
           onClick={() => setFilter('pending')}
-          style={{
-            borderRadius: 'var(--r-md) var(--r-md) 0 0',
-            borderBottom: filter === 'pending' ? '2px solid var(--primary)' : 'none',
-            minHeight: '44px',
-            padding: '.6rem 1.25rem',
-            fontWeight: 600,
-          }}
         >
           Pendentes
         </button>
         <button
-          className={`btn ${filter === 'approved' ? '' : 'ghost'}`}
+          type="button"
+          className="section-tab-btn"
+          aria-selected={filter === 'approved'}
           onClick={() => setFilter('approved')}
-          style={{
-            borderRadius: 'var(--r-md) var(--r-md) 0 0',
-            borderBottom: filter === 'approved' ? '2px solid var(--primary)' : 'none',
-            minHeight: '44px',
-            padding: '.6rem 1.25rem',
-            fontWeight: 600,
-          }}
         >
           Aprovados
         </button>
         <button
-          className={`btn ${filter === 'rejected' ? '' : 'ghost'}`}
+          type="button"
+          className="section-tab-btn"
+          aria-selected={filter === 'rejected'}
           onClick={() => setFilter('rejected')}
-          style={{
-            borderRadius: 'var(--r-md) var(--r-md) 0 0',
-            borderBottom: filter === 'rejected' ? '2px solid var(--primary)' : 'none',
-            minHeight: '44px',
-            padding: '.6rem 1.25rem',
-            fontWeight: 600,
-          }}
         >
           Reprovados
         </button>
@@ -306,45 +325,57 @@ export default function Aprovadores() {
 
       {/* Lista de Solicitações */}
       {loading ? (
-        <div className="center" style={{ padding: '3rem 0' }}>
+        <div className="center" style={{ padding: '4rem 0' }}>
           <div className="spinner" />
-          <p style={{ marginTop: '.75rem', fontSize: '.88rem' }}>Carregando solicitações...</p>
+          <p style={{ marginTop: '1rem', fontSize: '.88rem', color: 'var(--muted)' }}>
+            Carregando solicitações...
+          </p>
         </div>
       ) : items.length === 0 ? (
-        <div className="card empty" style={{ padding: '3rem 1rem', textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', padding: '1rem', background: 'var(--bg-sub)', borderRadius: '50%', color: 'var(--muted)', marginBottom: '.75rem' }}>
-            <ShieldCheckIcon size={32} />
+        <div className="card empty" style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              padding: '1.25rem',
+              background: 'var(--bg-sub)',
+              borderRadius: '50%',
+              color: 'var(--muted)',
+              marginBottom: '1rem',
+            }}
+          >
+            <ShieldCheckIcon size={36} />
           </div>
-          <h2>Nenhuma solicitação encontrada</h2>
-          <p style={{ color: 'var(--muted)', fontSize: '.88rem', margin: '.25rem auto' }}>
-            Não há cadastros com status <strong>{filter === 'pending' ? 'pendente' : filter === 'approved' ? 'aprovado' : 'reprovado'}</strong> no momento.
+          <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Nenhuma solicitação encontrada</h2>
+          <p style={{ color: 'var(--muted)', fontSize: '.9rem', margin: '.4rem auto 0', maxWidth: '420px' }}>
+            Não há estabelecimentos com status <strong>{filter === 'pending' ? 'pendente' : filter === 'approved' ? 'aprovado' : 'reprovado'}</strong> nesta fila de análise.
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '.85rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '.95rem' }}>
           {items.map(item => (
             <div
               key={item.id}
               className="card"
               style={{
-                padding: '1.25rem',
+                padding: '1.35rem 1.5rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '1rem',
+                gap: '1.25rem',
                 borderLeft: `4px solid ${
                   item.status === 'approved'
                     ? '#10b981'
                     : item.status === 'rejected'
                     ? '#ef4444'
-                    : '#3b82f6'
+                    : 'var(--primary)'
                 }`,
+                transition: 'transform var(--tr), box-shadow var(--tr), border-color var(--tr)',
               }}
             >
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.35rem' }}>
-                  <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, overflowWrap: 'break-word' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', flexWrap: 'wrap', marginBottom: '.45rem' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--fg)', overflowWrap: 'break-word' }}>
                     {item.trade_name || item.business_name}
                   </h2>
                   <span
@@ -367,16 +398,19 @@ export default function Aprovadores() {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '.85rem', flexWrap: 'wrap', fontSize: '.82rem', color: 'var(--muted)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', fontSize: '.84rem', color: 'var(--muted)' }}>
                   {item.city && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                      <LocationIcon size={13} />
-                      {item.city}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+                      <LocationIcon size={14} style={{ color: 'var(--primary)' }} />
+                      <span>{item.city}</span>
                     </span>
                   )}
-                  <span>
-                    Solicitante: <strong>{item.applicant_name || 'Usuário'}</strong>
-                    {item.applicant_phone ? ` (${item.applicant_phone})` : ''}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+                    <UserIcon size={14} />
+                    <span>
+                      Solicitante: <strong style={{ color: 'var(--fg)' }}>{item.applicant_name || 'Usuário'}</strong>
+                      {item.applicant_phone ? ` (${item.applicant_phone})` : ''}
+                    </span>
                   </span>
                   <span>
                     Enviado em:{' '}
@@ -395,7 +429,7 @@ export default function Aprovadores() {
                 <button
                   type="button"
                   className="btn sm"
-                  style={{ minHeight: '44px', padding: '.5rem 1rem' }}
+                  style={{ minHeight: '44px', padding: '.55rem 1.25rem', fontWeight: 600 }}
                   onClick={() => abrirDetalhes(item.id)}
                 >
                   Revisar solicitação →
@@ -405,13 +439,13 @@ export default function Aprovadores() {
           ))}
 
           {hasMore && (
-            <div className="center" style={{ marginTop: '1rem' }}>
+            <div className="center" style={{ marginTop: '1.25rem' }}>
               <button
                 type="button"
                 className="btn ghost sm"
                 disabled={loadingMore}
                 onClick={() => carregarLista(filter, pageOffset, false)}
-                style={{ minHeight: '44px', minWidth: '160px' }}
+                style={{ minHeight: '44px', minWidth: '180px' }}
               >
                 {loadingMore ? 'Carregando mais...' : 'Carregar mais solicitações'}
               </button>
@@ -420,322 +454,475 @@ export default function Aprovadores() {
         </div>
       )}
 
-      {/* Modal / Gaveta de Detalhamento da Solicitação */}
-      {selectedId && (
+      {/* Modal / Dialog de Detalhamento da Solicitação (via Portal para posicionamento perfeito na tela) */}
+      {selectedId && createPortal(
         <div
           role="dialog"
           aria-modal="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 999,
-            background: 'rgba(0, 0, 0, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-          }}
+          className="modal-backdrop"
           onClick={fecharDetalhes}
         >
           <div
-            className="card"
-            style={{
-              width: '100%',
-              maxWidth: '820px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              padding: '1.75rem',
-              position: 'relative',
-              background: 'var(--card)',
-              border: '1px solid var(--line)',
-              boxShadow: 'var(--sh-lg)',
-            }}
+            className="modal-dialog modal-review"
             onClick={e => e.stopPropagation()}
           >
-            {/* Cabeçalho do Modal */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', gap: '1rem' }}>
-              <div>
-                <button
-                  type="button"
-                  className="link"
-                  onClick={fecharDetalhes}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', fontSize: '.84rem', marginBottom: '.5rem' }}
+            {/* Cabeçalho do Modal (Fixo no Topo) */}
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.85rem', minWidth: 0 }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: 'var(--r-md)',
+                    background: 'var(--primary-lt)',
+                    color: 'var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
                 >
-                  <ArrowLeftIcon size={14} />
-                  <span>Voltar para listagem</span>
-                </button>
-                <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700 }}>
-                  {detail?.application.trade_name || 'Carregando solicitação...'}
-                </h2>
-                <small style={{ color: 'var(--muted)', fontSize: '.8rem' }}>
-                  ID da Solicitação: {selectedId}
-                </small>
+                  <BuildingIcon size={22} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
+                    <h2
+                      className="modal-title"
+                      style={{
+                        margin: 0,
+                        fontSize: '1.25rem',
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {detail?.application.trade_name || detail?.business.name || 'Detalhes da Solicitação'}
+                    </h2>
+                    {detail && (
+                      <span
+                        className={`badge ${
+                          detail.application.status === 'approved'
+                            ? 'badge-ok'
+                            : detail.application.status === 'rejected'
+                            ? 'badge-danger'
+                            : 'badge-info'
+                        }`}
+                      >
+                        {detail.application.status === 'approved'
+                          ? 'Aprovado'
+                          : detail.application.status === 'rejected'
+                          ? 'Reprovado'
+                          : 'Pendente'}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginTop: '.2rem', fontSize: '.78rem', color: 'var(--muted)' }}>
+                    <span>ID: <code style={{ fontSize: '.74rem', background: 'var(--bg-sub)', padding: '1px 5px', borderRadius: '4px' }}>{selectedId.slice(0, 8)}</code></span>
+                    {detail?.business.category_name && (
+                      <>
+                        <span>•</span>
+                        <span>{detail.business.category_name}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <button
                 type="button"
-                className="icon-btn"
+                className="modal-close-btn"
                 onClick={fecharDetalhes}
                 aria-label="Fechar"
-                style={{ minWidth: '44px', minHeight: '44px', fontSize: '1.2rem' }}
+                title="Fechar (Esc)"
               >
                 ✕
               </button>
             </div>
 
-            {detailLoading ? (
-              <div className="center" style={{ padding: '3rem 0' }}>
-                <div className="spinner" />
-                <p style={{ marginTop: '.75rem', fontSize: '.88rem' }}>Carregando dados da moderação...</p>
-              </div>
-            ) : detail ? (
-              <div>
-                {/* Status e Identificação do Negócio */}
-                <div
-                  style={{
-                    background: 'var(--bg-sub)',
-                    borderRadius: 'var(--r-md)',
-                    padding: '1rem',
-                    marginBottom: '1.25rem',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '.75rem',
-                    fontSize: '.85rem',
-                  }}
-                >
-                  <div>
-                    <span style={{ color: 'var(--muted)', display: 'block', fontSize: '.75rem' }}>STATUS DA ANÁLISE</span>
-                    <span
-                      className={`badge ${
-                        detail.application.status === 'approved'
-                          ? 'badge-ok'
-                          : detail.application.status === 'rejected'
-                          ? 'badge-danger'
-                          : 'badge-info'
-                      }`}
-                      style={{ marginTop: '.25rem' }}
-                    >
-                      {detail.application.status === 'approved'
-                        ? 'Aprovado'
-                        : detail.application.status === 'rejected'
-                        ? 'Reprovado'
-                        : 'Pendente'}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span style={{ color: 'var(--muted)', display: 'block', fontSize: '.75rem' }}>PÁGINA PÚBLICA</span>
-                    <a
-                      href={`/n/${detail.business.slug}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: '.3rem', fontWeight: 600, marginTop: '.25rem' }}
-                    >
-                      <span>/n/{detail.business.slug}</span>
-                      <ExternalLinkIcon size={12} />
-                    </a>
-                  </div>
-
-                  <div>
-                    <span style={{ color: 'var(--muted)', display: 'block', fontSize: '.75rem' }}>CATEGORIA</span>
-                    <strong style={{ display: 'block', marginTop: '.25rem' }}>
-                      {detail.business.category_name || 'Sem categoria'}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span style={{ color: 'var(--muted)', display: 'block', fontSize: '.75rem' }}>FAIXA DE FATURAMENTO</span>
-                    <strong style={{ display: 'block', marginTop: '.25rem' }}>
-                      {FAIXA_MAP[detail.application.revenue_range] || detail.application.revenue_range}
-                    </strong>
-                  </div>
-                </div>
-
-                {/* Dados do Solicitante e CNPJ */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                    gap: '1rem',
-                    marginBottom: '1.25rem',
-                  }}
-                >
-                  {/* Solicitante */}
-                  <div className="card" style={{ padding: '1rem', background: 'var(--bg-sub)' }}>
-                    <h3 style={{ margin: '0 0 .5rem', fontSize: '.9rem', fontWeight: 600 }}>Dados do Solicitante</h3>
-                    <p style={{ margin: 0, fontSize: '.84rem' }}>
-                      Nome: <strong>{detail.applicant.full_name || 'Não informado'}</strong>
-                    </p>
-                    <p style={{ margin: '.25rem 0 0', fontSize: '.84rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
-                      Telefone: <strong>{detail.applicant.phone || 'Sem telefone'}</strong>
-                      {detail.applicant.phone && (
-                        <a
-                          href={`https://wa.me/55${detail.applicant.phone.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ color: '#25d366', display: 'inline-flex' }}
-                          title="Abrir no WhatsApp"
-                        >
-                          <WhatsAppIcon size={15} />
-                        </a>
-                      )}
-                    </p>
-                    <small style={{ display: 'block', marginTop: '.4rem', color: 'var(--muted)', fontSize: '.76rem' }}>
-                      Enviado em {new Date(detail.application.created_at).toLocaleString('pt-BR')}
-                    </small>
-                  </div>
-
-                  {/* Documento e Social */}
-                  <div className="card" style={{ padding: '1rem', background: 'var(--bg-sub)' }}>
-                    <h3 style={{ margin: '0 0 .5rem', fontSize: '.9rem', fontWeight: 600 }}>Documentos & Contato</h3>
-                    <p style={{ margin: 0, fontSize: '.84rem' }}>
-                      CNPJ: <strong>{formatCNPJ(detail.application.cnpj)}</strong>
-                    </p>
-                    <p style={{ margin: '.25rem 0 0', fontSize: '.84rem' }}>
-                      Instagram:{' '}
-                      {detail.application.instagram ? (
-                        <a
-                          href={
-                            detail.application.instagram.startsWith('http')
-                              ? detail.application.instagram
-                              : `https://instagram.com/${detail.application.instagram.replace('@', '')}`
-                          }
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ color: 'var(--primary)', fontWeight: 600 }}
-                        >
-                          {detail.application.instagram}
-                        </a>
-                      ) : (
-                        <span style={{ color: 'var(--muted)' }}>Não informado</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Endereço Físico Completo */}
-                <div className="card" style={{ padding: '1rem', background: 'var(--bg-sub)', marginBottom: '1.25rem' }}>
-                  <h3 style={{ margin: '0 0 .4rem', fontSize: '.9rem', fontWeight: 600 }}>Endereço Completo do Estabelecimento</h3>
-                  <p style={{ margin: 0, fontSize: '.86rem', lineHeight: 1.45 }}>
-                    {detail.application.street}, {detail.application.number}
-                    {detail.application.complement ? ` - ${detail.application.complement}` : ''}
-                    <br />
-                    {detail.application.district} · {detail.application.city} - {detail.application.state} · CEP {formatCEP(detail.application.zip_code)}
+            {/* Conteúdo com Scroll Suave */}
+            <div className="modal-body">
+              {detailLoading ? (
+                <div className="center" style={{ padding: '4rem 0' }}>
+                  <div className="spinner" />
+                  <p style={{ marginTop: '1rem', fontSize: '.88rem', color: 'var(--muted)' }}>
+                    Carregando dados da moderação...
                   </p>
                 </div>
-
-                {/* Descrição do Espaço */}
-                {detail.application.description && (
-                  <div className="card" style={{ padding: '1rem', background: 'var(--bg-sub)', marginBottom: '1.25rem' }}>
-                    <h3 style={{ margin: '0 0 .4rem', fontSize: '.9rem', fontWeight: 600 }}>Descrição das Instalações e Atendimento</h3>
-                    <p style={{ margin: 0, fontSize: '.85rem', color: 'var(--text)', whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>
-                      {detail.application.description}
-                    </p>
-                  </div>
-                )}
-
-                {/* Galeria de Fotos */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.5rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '.95rem', fontWeight: 600 }}>
-                      Fotos da Análise ({photoUrls.length} anexada{photoUrls.length === 1 ? '' : 's'})
-                    </h3>
-                    <span style={{ fontSize: '.78rem', color: 'var(--muted)' }}>
-                      Clique em uma foto para ampliar
-                    </span>
-                  </div>
-
-                  {photoUrls.length === 0 ? (
-                    <p style={{ color: 'var(--muted)', fontSize: '.84rem' }}>
-                      Nenhuma foto carregada ou expirada.
-                    </p>
-                  ) : (
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                        gap: '.75rem',
-                      }}
-                    >
-                      {photoUrls.map((p, idx) => (
-                        <div
-                          key={p.path}
-                          onClick={() => setActivePhoto(p.url)}
-                          style={{
-                            aspectRatio: '4/3',
-                            borderRadius: 'var(--r-md)',
-                            overflow: 'hidden',
-                            border: '1px solid var(--line)',
-                            cursor: 'pointer',
-                            background: '#000',
-                          }}
+              ) : detail ? (
+                <>
+                  {/* Resumo Executivo / Métricas Rápidas */}
+                  <div className="approver-metric-grid">
+                    <div className="approver-metric-card">
+                      <span className="approver-metric-label">Status da Análise</span>
+                      <div className="approver-metric-val">
+                        <span
+                          className={`badge ${
+                            detail.application.status === 'approved'
+                              ? 'badge-ok'
+                              : detail.application.status === 'rejected'
+                              ? 'badge-danger'
+                              : 'badge-info'
+                          }`}
                         >
-                          <img
-                            src={p.url}
-                            alt={`Foto ${idx + 1}`}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
+                          {detail.application.status === 'approved'
+                            ? 'Aprovado'
+                            : detail.application.status === 'rejected'
+                            ? 'Reprovado'
+                            : 'Pendente'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="approver-metric-card">
+                      <span className="approver-metric-label">Página Pública</span>
+                      <div className="approver-metric-val">
+                        <a
+                          href={`/n/${detail.business.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            color: 'var(--primary)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '.35rem',
+                            fontSize: '.88rem',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                          }}
+                          title="Abrir página pública em nova aba"
+                        >
+                          <span>/n/{detail.business.slug}</span>
+                          <ExternalLinkIcon size={13} />
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="approver-metric-card">
+                      <span className="approver-metric-label">Categoria</span>
+                      <div className="approver-metric-val" style={{ fontSize: '.88rem' }}>
+                        {detail.business.category_name || 'Sem categoria'}
+                      </div>
+                    </div>
+
+                    <div className="approver-metric-card">
+                      <span className="approver-metric-label">Faixa de Faturamento</span>
+                      <div className="approver-metric-val" style={{ fontSize: '.88rem' }}>
+                        {FAIXA_MAP[detail.application.revenue_range] || detail.application.revenue_range}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Informações em 2 Colunas */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                      gap: '1rem',
+                    }}
+                  >
+                    {/* Card 1: Solicitante */}
+                    <div className="approver-card-section">
+                      <h3 className="approver-section-title">
+                        <UserIcon size={16} style={{ color: 'var(--primary)' }} />
+                        <span>Dados do Solicitante</span>
+                      </h3>
+
+                      <div className="approver-data-row">
+                        <span className="approver-data-label">Nome Completo</span>
+                        <span className="approver-data-value">{detail.applicant.full_name || 'Não informado'}</span>
+                      </div>
+
+                      <div className="approver-data-row">
+                        <span className="approver-data-label">Telefone / Contato</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                          <span className="approver-data-value">{detail.applicant.phone || 'Sem telefone'}</span>
+                          {detail.applicant.phone && (
+                            <a
+                              href={`https://wa.me/55${detail.applicant.phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '.25rem',
+                                padding: '.25rem .5rem',
+                                background: 'rgba(37, 211, 102, 0.12)',
+                                border: '1px solid rgba(37, 211, 102, 0.35)',
+                                color: '#16a34a',
+                                borderRadius: 'var(--r-sm)',
+                                fontSize: '.76rem',
+                                fontWeight: 600,
+                                textDecoration: 'none',
+                              }}
+                              title="Conversar pelo WhatsApp"
+                            >
+                              <WhatsAppIcon size={13} />
+                              <span>WhatsApp</span>
+                            </a>
+                          )}
                         </div>
-                      ))}
+                      </div>
+
+                      <div className="approver-data-row">
+                        <span className="approver-data-label">Data de Envio</span>
+                        <span className="approver-data-value" style={{ fontSize: '.82rem' }}>
+                          {new Date(detail.application.created_at).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Card 2: Documentos & Identidade */}
+                    <div className="approver-card-section">
+                      <h3 className="approver-section-title">
+                        <BuildingIcon size={16} style={{ color: 'var(--primary)' }} />
+                        <span>Documentos & Presença Digital</span>
+                      </h3>
+
+                      <div className="approver-data-row">
+                        <span className="approver-data-label">CNPJ</span>
+                        <span className="approver-data-value">
+                          {formatCNPJ(detail.application.cnpj)}
+                        </span>
+                      </div>
+
+                      <div className="approver-data-row">
+                        <span className="approver-data-label">Nome Fantasia</span>
+                        <span className="approver-data-value">{detail.application.trade_name}</span>
+                      </div>
+
+                      <div className="approver-data-row">
+                        <span className="approver-data-label">Instagram</span>
+                        {detail.application.instagram ? (
+                          <a
+                            href={
+                              detail.application.instagram.startsWith('http')
+                                ? detail.application.instagram
+                                : `https://instagram.com/${detail.application.instagram.replace('@', '')}`
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '.25rem' }}
+                          >
+                            <span>{detail.application.instagram}</span>
+                            <ExternalLinkIcon size={12} />
+                          </a>
+                        ) : (
+                          <span className="approver-data-value" style={{ color: 'var(--muted)', fontWeight: 400 }}>
+                            Não informado
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Endereço Físico Completo */}
+                  <div className="approver-card-section">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '.5rem' }}>
+                      <h3 className="approver-section-title">
+                        <LocationIcon size={16} style={{ color: 'var(--primary)' }} />
+                        <span>Endereço Completo do Estabelecimento</span>
+                      </h3>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          `${detail.application.street}, ${detail.application.number}, ${detail.application.district}, ${detail.application.city} - ${detail.application.state}`
+                        )}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn ghost sm"
+                        style={{
+                          fontSize: '.78rem',
+                          padding: '.25rem .65rem',
+                          minHeight: '30px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '.3rem',
+                        }}
+                      >
+                        <span>Abrir no Google Maps</span>
+                        <ExternalLinkIcon size={11} />
+                      </a>
+                    </div>
+                    <div style={{ fontSize: '.88rem', color: 'var(--fg)', lineHeight: 1.5 }}>
+                      <strong>{detail.application.street}, {detail.application.number}</strong>
+                      {detail.application.complement ? ` · Compl: ${detail.application.complement}` : ''}
+                      <br />
+                      <span style={{ color: 'var(--muted)' }}>
+                        {detail.application.district} · {detail.application.city} - {detail.application.state} · CEP: {formatCEP(detail.application.zip_code)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Descrição do Espaço (se preenchida) */}
+                  {detail.application.description && (
+                    <div className="approver-card-section">
+                      <h3 className="approver-section-title">
+                        <span>Descrição das Instalações e Atendimento</span>
+                      </h3>
+                      <p style={{ margin: 0, fontSize: '.86rem', color: 'var(--fg)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                        {detail.application.description}
+                      </p>
                     </div>
                   )}
-                </div>
 
-                {/* Histórico da Decisão (se já decidido) */}
-                {detail.application.status !== 'pending' && (
-                  <div
-                    className="card"
-                    style={{
-                      padding: '1rem',
-                      background: detail.application.status === 'approved' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                      borderColor: detail.application.status === 'approved' ? '#10b981' : '#f87171',
-                      marginBottom: '1.25rem',
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: '.88rem', color: detail.application.status === 'approved' ? '#047857' : '#dc2626' }}>
-                      {detail.application.status === 'approved' ? 'Aprovado' : 'Reprovado'} por {detail.reviewer?.full_name || 'Aprovador'} em{' '}
-                      {detail.application.reviewed_at ? new Date(detail.application.reviewed_at).toLocaleString('pt-BR') : '-'}
+                  {/* Galeria de Fotos */}
+                  <div className="approver-card-section">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '.5rem' }}>
+                      <h3 className="approver-section-title">
+                        <CameraIcon size={16} style={{ color: 'var(--primary)' }} />
+                        <span>Fotos do Estabelecimento</span>
+                        <span className="badge badge-muted" style={{ marginLeft: '.25rem' }}>
+                          {photoUrls.length} {photoUrls.length === 1 ? 'foto' : 'fotos'}
+                        </span>
+                      </h3>
+                      <span style={{ fontSize: '.78rem', color: 'var(--muted)' }}>
+                        Clique em uma imagem para ampliar
+                      </span>
                     </div>
-                    {detail.application.review_comment && (
-                      <p style={{ margin: '.35rem 0 0', fontSize: '.85rem', whiteSpace: 'pre-wrap' }}>
-                        <strong>Comentário:</strong> {detail.application.review_comment}
-                      </p>
+
+                    {photoUrls.length === 0 ? (
+                      <div style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--card)', borderRadius: 'var(--r-md)', border: '1px dashed var(--line)' }}>
+                        <p style={{ color: 'var(--muted)', fontSize: '.85rem', margin: 0 }}>
+                          Nenhuma foto anexada nesta solicitação.
+                        </p>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                          gap: '.75rem',
+                        }}
+                      >
+                        {photoUrls.map((p, idx) => (
+                          <div
+                            key={p.path}
+                            className="approver-photo-item"
+                            onClick={() => setActivePhoto(p.url)}
+                            title={`Foto ${idx + 1} - Clique para ampliar`}
+                          >
+                            <img
+                              src={p.url}
+                              alt={`Foto ${idx + 1}`}
+                              loading="lazy"
+                            />
+                            <div className="approver-photo-overlay">
+                              <span>Foto {idx + 1}</span>
+                              <span>🔍</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                )}
 
-                {/* Mensagem de Erro / Feedback de Ação */}
-                {actionMsg && (
-                  <div
-                    className="card"
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.08)',
-                      borderColor: '#f87171',
-                      padding: '.75rem',
-                      marginBottom: '1rem',
-                      color: '#dc2626',
-                      fontSize: '.85rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '.5rem',
-                    }}
-                  >
-                    <AlertCircleIcon size={16} />
-                    <span>{actionMsg}</span>
-                  </div>
-                )}
+                  {/* Histórico da Decisão (se já decidido) */}
+                  {detail.application.status !== 'pending' && (
+                    <div
+                      className="card"
+                      style={{
+                        padding: '1.15rem',
+                        background:
+                          detail.application.status === 'approved'
+                            ? 'rgba(16, 185, 129, 0.08)'
+                            : 'rgba(239, 68, 68, 0.08)',
+                        borderColor:
+                          detail.application.status === 'approved' ? '#10b981' : '#f87171',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '.45rem',
+                          fontWeight: 700,
+                          fontSize: '.92rem',
+                          color:
+                            detail.application.status === 'approved' ? '#059669' : '#dc2626',
+                        }}
+                      >
+                        {detail.application.status === 'approved' ? (
+                          <>
+                            <CheckIcon size={18} />
+                            <span>Aprovado por {detail.reviewer?.full_name || 'Aprovador'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircleIcon size={18} />
+                            <span>Reprovado por {detail.reviewer?.full_name || 'Aprovador'}</span>
+                          </>
+                        )}
+                        <span style={{ color: 'var(--muted)', fontWeight: 400, fontSize: '.82rem' }}>
+                          em {detail.application.reviewed_at ? new Date(detail.application.reviewed_at).toLocaleString('pt-BR') : '-'}
+                        </span>
+                      </div>
+                      {detail.application.review_comment && (
+                        <div style={{ marginTop: '.6rem', fontSize: '.86rem', color: 'var(--fg)', lineHeight: 1.5, background: 'var(--card)', padding: '.75rem', borderRadius: 'var(--r-sm)', border: '1px solid var(--line)' }}>
+                          <strong>Parecer / Motivo:</strong> {detail.application.review_comment}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                {/* Ações de Moderação (só se pending) */}
-                {detail.application.status === 'pending' && (
-                  <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--line)' }}>
+                  {/* Mensagem de Erro / Alerta */}
+                  {actionMsg && (
+                    <div
+                      className="card"
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        borderColor: '#f87171',
+                        padding: '.85rem 1rem',
+                        color: '#dc2626',
+                        fontSize: '.86rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '.6rem',
+                      }}
+                    >
+                      <AlertCircleIcon size={18} />
+                      <span>{actionMsg}</span>
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+
+            {/* Rodapé Fixo com Ações de Moderação */}
+            <div className="modal-footer">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '.75rem' }}>
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  onClick={fecharDetalhes}
+                  style={{ minHeight: '40px' }}
+                >
+                  ← Fechar
+                </button>
+
+                {detail && detail.application.status === 'pending' && (
+                  <div style={{ display: 'flex', gap: '.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     {!showRejectBox ? (
-                      <div style={{ display: 'flex', gap: '.75rem', flexWrap: 'wrap' }}>
+                      <>
                         <button
                           type="button"
-                          className="btn"
+                          className="btn ghost sm"
+                          disabled={actionBusy}
+                          onClick={() => setShowRejectBox(true)}
+                          style={{
+                            color: '#ef4444',
+                            borderColor: 'rgba(239, 68, 68, 0.4)',
+                            minHeight: '40px',
+                            fontWeight: 600,
+                          }}
+                        >
+                          ✕ Reprovar com Justificativa
+                        </button>
+                        <button
+                          type="button"
+                          className="btn sm"
                           disabled={actionBusy}
                           onClick={() => {
-                            if (window.confirm('Confirma a APROVAÇÃO deste negócio?')) {
+                            if (window.confirm(`Confirma a APROVAÇÃO de "${detail.application.trade_name}" para publicação no Hub?`)) {
                               decidir(true)
                             }
                           }}
@@ -743,44 +930,33 @@ export default function Aprovadores() {
                             background: '#10b981',
                             borderColor: '#10b981',
                             color: '#fff',
-                            flex: 1,
-                            minHeight: '44px',
+                            minHeight: '40px',
                             fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '.35rem',
                           }}
                         >
-                          {actionBusy ? 'Processando...' : '✓ Aprovar Negócio'}
+                          <CheckIcon size={16} />
+                          <span>{actionBusy ? 'Processando...' : 'Aprovar Estabelecimento'}</span>
                         </button>
-                        <button
-                          type="button"
-                          className="btn ghost"
-                          disabled={actionBusy}
-                          onClick={() => setShowRejectBox(true)}
-                          style={{
-                            color: '#ef4444',
-                            borderColor: '#fca5a5',
-                            flex: 1,
-                            minHeight: '44px',
-                            fontWeight: 600,
-                          }}
-                        >
-                          ✕ Reprovar com Justificativa
-                        </button>
-                      </div>
+                      </>
                     ) : (
-                      <div style={{ background: 'var(--bg-sub)', padding: '1rem', borderRadius: 'var(--r-md)' }}>
-                        <label style={{ margin: 0 }}>
-                          <span style={{ fontWeight: 600, fontSize: '.88rem', color: '#dc2626' }}>
+                      <div style={{ width: '100%', background: 'var(--bg-sub)', padding: '1rem', borderRadius: 'var(--r-md)', border: '1px solid rgba(239,68,68,0.3)', marginTop: '.5rem' }}>
+                        <label style={{ margin: 0, display: 'block' }}>
+                          <span style={{ fontWeight: 600, fontSize: '.86rem', color: '#dc2626' }}>
                             Motivo da Reprovação (obrigatório, mín. 10 caracteres):
                           </span>
                           <textarea
                             rows={3}
+                            autoFocus
                             value={rejectComment}
                             onChange={e => setRejectComment(e.target.value)}
-                            placeholder="Descreva detalhadamente o que o solicitante deve corrigir (ex.: foto da fachada ilegível, endereço inconsistente, etc.)..."
-                            style={{ marginTop: '.4rem', fontSize: '.85rem' }}
+                            placeholder="Descreva detalhadamente o que precisa ser corrigido pelo solicitante (ex.: foto ilegível, endereço inconsistente, etc.)..."
+                            style={{ marginTop: '.4rem', fontSize: '.85rem', width: '100%' }}
                           />
                         </label>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '.35rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '.4rem' }}>
                           <small style={{ color: rejectComment.trim().length < 10 ? '#ef4444' : 'var(--muted)', fontSize: '.76rem' }}>
                             {rejectComment.trim().length} / 10 caracteres mínimos
                           </small>
@@ -793,7 +969,7 @@ export default function Aprovadores() {
                                 setRejectComment('')
                               }}
                               disabled={actionBusy}
-                              style={{ minHeight: '38px' }}
+                              style={{ minHeight: '36px' }}
                             >
                               Cancelar
                             </button>
@@ -806,7 +982,8 @@ export default function Aprovadores() {
                                 background: '#dc2626',
                                 borderColor: '#dc2626',
                                 color: '#fff',
-                                minHeight: '38px',
+                                minHeight: '36px',
+                                fontWeight: 600,
                               }}
                             >
                               {actionBusy ? 'Reprovando...' : 'Confirmar Reprovação'}
@@ -818,13 +995,14 @@ export default function Aprovadores() {
                   </div>
                 )}
               </div>
-            ) : null}
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Lightbox / Zoom da Foto */}
-      {activePhoto && (
+      {/* Lightbox / Zoom da Foto em Tela Cheia (via Portal) */}
+      {activePhoto && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -832,48 +1010,54 @@ export default function Aprovadores() {
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 1000,
-            background: 'rgba(0, 0, 0, 0.9)',
+            zIndex: 1100,
+            background: 'rgba(0, 0, 0, 0.92)',
+            backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1rem',
+            padding: '1.5rem',
+            animation: 'fadeIn .18s ease both',
           }}
         >
           <img
             src={activePhoto}
             alt="Foto ampliada"
             style={{
-              maxWidth: '95vw',
-              maxHeight: '90vh',
+              maxWidth: '92vw',
+              maxHeight: '88vh',
               objectFit: 'contain',
               borderRadius: 'var(--r-md)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
             }}
           />
           <button
             type="button"
             onClick={() => setActivePhoto(null)}
             aria-label="Fechar foto ampliada"
+            title="Fechar (Esc)"
             style={{
               position: 'absolute',
-              top: '1rem',
-              right: '1rem',
-              background: 'rgba(255,255,255,0.2)',
+              top: '1.25rem',
+              right: '1.25rem',
+              background: 'rgba(255,255,255,0.15)',
               color: '#fff',
-              border: 'none',
+              border: '1px solid rgba(255,255,255,0.25)',
               borderRadius: '50%',
-              width: '44px',
-              height: '44px',
-              fontSize: '1.25rem',
+              width: '42px',
+              height: '42px',
+              fontSize: '1.15rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              transition: 'background var(--tr)',
             }}
           >
             ✕
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </main>
   )

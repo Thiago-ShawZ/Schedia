@@ -2322,14 +2322,16 @@ textarea {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .68);
+  background: rgba(0, 0, 0, .72);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 300;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 2.25rem 1.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   animation: fadeIn .18s ease both;
 }
 
@@ -2337,10 +2339,11 @@ textarea {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  box-shadow: var(--sh-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .4);
   width: 100%;
   max-width: 620px;
-  max-height: 90vh;
+  max-height: calc(100vh - 4.5rem);
+  margin: auto;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2409,6 +2412,32 @@ textarea {
   gap: 1rem;
 }
 
+.modal-dialog.modal-lg {
+  max-width: 860px;
+}
+
+.modal-dialog.modal-review {
+  width: min(940px, 94vw);
+  max-width: 940px;
+  max-height: min(88vh, 800px);
+  margin: auto;
+  border-radius: var(--r-lg);
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(124, 58, 237, 0.2);
+}
+
+.modal-footer {
+  padding: 1.1rem 1.4rem;
+  border-top: 1px solid var(--line);
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .75rem;
+  flex-shrink: 0;
+  border-bottom-left-radius: var(--r-lg);
+  border-bottom-right-radius: var(--r-lg);
+}
+
 @media (max-width: 600px) {
   .modal-backdrop {
     padding: .5rem;
@@ -2419,12 +2448,165 @@ textarea {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
+  .modal-dialog.modal-lg,
+  .modal-dialog.modal-review {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+  }
   .modal-header {
     padding: 1rem 1.1rem;
   }
   .modal-body {
     padding: 1rem 1.1rem;
   }
+  .modal-footer {
+    padding: .85rem 1.1rem;
+    flex-direction: column-reverse;
+    gap: .5rem;
+  }
+  .modal-footer > * {
+    width: 100%;
+  }
+}
+
+/* ─── Moderação de Aprovadores ───────────────────────────────────── */
+.approver-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .75rem;
+}
+
+.approver-metric-card {
+  background: var(--bg-sub);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: .85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  transition: border-color var(--tr), transform var(--tr);
+}
+
+.approver-metric-card:hover {
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+.approver-metric-label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--muted);
+}
+
+.approver-metric-val {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.approver-card-section {
+  background: var(--bg-sub);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  transition: border-color var(--tr);
+}
+
+.approver-card-section:hover {
+  border-color: rgba(124, 58, 237, 0.25);
+}
+
+.approver-section-title {
+  font-size: .86rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0;
+}
+
+.approver-data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .86rem;
+  padding: .4rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.approver-data-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.approver-data-label {
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+.approver-data-value {
+  color: var(--fg);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+.approver-photo-item {
+  position: relative;
+  aspect-ratio: 4/3;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #0d0b12;
+  cursor: pointer;
+  transition: transform var(--tr), border-color var(--tr), box-shadow var(--tr);
+}
+
+.approver-photo-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow: var(--sh-md);
+}
+
+.approver-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .3s ease;
+}
+
+.approver-photo-item:hover img {
+  transform: scale(1.05);
+}
+
+.approver-photo-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, transparent 60%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: .5rem .65rem;
+  opacity: 0;
+  transition: opacity var(--tr);
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+.approver-photo-item:hover .approver-photo-overlay {
+  opacity: 1;
 }
 
 /* ─── Schedia Assist (IA de Atendimento ao Cliente) ──────────────── */

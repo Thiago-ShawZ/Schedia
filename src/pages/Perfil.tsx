@@ -18,6 +18,12 @@ export default function Perfil() {
 
   useEffect(() => {
     if (uid) {
+      // Sanitização de emergência: se o user_metadata do auth contiver data-URL, limpa imediatamente
+      const metaAvatar = session?.user?.user_metadata?.avatar_url
+      if (typeof metaAvatar === 'string' && metaAvatar.startsWith('data:')) {
+        supabase.auth.updateUser({ data: { avatar_url: null } })
+      }
+
       supabase
         .from('profiles')
         .select('full_name,phone,avatar_url')
@@ -27,31 +33,41 @@ export default function Perfil() {
           if (data) {
             setName(data.full_name)
             setPhone(data.phone ?? '')
-            setAvatarUrl(data.avatar_url ?? '')
+            // Ignora e limpa strings base64 data-URL legadas para não inchar a memória e a visualização
+            if (data.avatar_url && data.avatar_url.startsWith('data:')) {
+              setAvatarUrl('')
+              supabase.from('profiles').update({ avatar_url: null }).eq('id', uid)
+            } else {
+              setAvatarUrl(data.avatar_url ?? '')
+            }
           }
         })
     }
-  }, [uid])
+  }, [uid, session])
 
   async function salvar(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
     setMsg('')
 
-    // Atualiza tabela profiles e metadados de autenticação
+    // Garante que nenhuma string data-URL seja gravada
+    const safeAvatarUrl = avatarUrl && !avatarUrl.startsWith('data:') ? avatarUrl.trim() : null
+
+    // Atualiza tabela profiles e metadados de autenticação SEM data-URL
     const [pRes, aRes] = await Promise.all([
       supabase
         .from('profiles')
         .update({
           full_name: name.trim(),
           phone: phone.trim() || null,
-          avatar_url: avatarUrl.trim() || null,
+          avatar_url: safeAvatarUrl,
         })
         .eq('id', uid),
+      // IMPORTANTE: avatar_url NUNCA vai como data-URL para o user_metadata do Auth (evita inchar o JWT)
       supabase.auth.updateUser({
         data: {
           full_name: name.trim(),
-          avatar_url: avatarUrl.trim() || null,
+          avatar_url: null, // Limpa do JWT para manter o token leve e evitar erro 400 no Storage
         },
       }),
     ])
@@ -109,6 +125,8 @@ export default function Perfil() {
             onChange={setAvatarUrl}
             label="Foto de perfil"
             size={76}
+            bucket="avatars"
+            pathPrefix={uid}
           />
 
           <label>

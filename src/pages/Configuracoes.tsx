@@ -261,6 +261,8 @@ export default function Configuracoes() {
             value={biz.logo_url}
             fallbackText={biz.name || 'B'}
             onChange={url => setBiz({ ...biz, logo_url: url })}
+            bucket="business-logos"
+            pathPrefix={`logos/${id || 'temp'}`}
             label="Logotipo do negócio"
             size={76}
           />
