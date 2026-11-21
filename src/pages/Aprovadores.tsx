@@ -177,14 +177,14 @@ export default function Aprovadores() {
     setLoadingMore(false)
   }
 
-  async function abrirDetalhes(id: string) {
+  async function abrirDetalhes(id: string, manterMsg = false) {
     setSelectedId(id)
-    setDetail(null)
     setDetailLoading(true)
-    setPhotoUrls([])
     setShowRejectBox(false)
     setRejectComment('')
-    setActionMsg('')
+    if (!manterMsg) {
+      setActionMsg('')
+    }
 
     const { data, error } = await supabase.rpc('approver_get_application', { p_id: id })
 
@@ -242,25 +242,28 @@ export default function Aprovadores() {
     setActionBusy(false)
 
     if (error) {
+      console.error('Erro ao decidir solicitação:', error)
+      const raw = error.message || ''
       const msgTraduzida =
-        error.message.includes('already_decided')
-          ? 'Esta solicitação já foi decidida por outro aprovador.'
-          : error.message.includes('cannot_review_own')
-          ? 'Você não pode decidir a solicitação do seu próprio negócio.'
-          : error.message.includes('comment_required')
+        raw.includes('already_decided')
+          ? 'Esta solicitação já foi homologada por outro aprovador.'
+          : raw.includes('cannot_review_own')
+          ? 'Regra do banco: Você não pode homologar o seu próprio negócio de teste. Execute o script SQL no Supabase para liberar aprovação de testes pelo próprio aprovador.'
+          : raw.includes('comment_required')
           ? 'O comentário de reprovação deve conter no mínimo 10 caracteres.'
-          : error.message.includes('forbidden')
-          ? 'Acesso não autorizado para perfil de aprovador.'
-          : error.message
+          : raw.includes('forbidden')
+          ? 'Acesso não autorizado para o papel de aprovador.'
+          : `Falha ao processar solicitação: ${raw}`
 
       setActionMsg(msgTraduzida)
-      // Atualiza detalhes para sincronizar com o estado atual do banco
-      abrirDetalhes(detail.application.id)
+      alert(msgTraduzida)
+      await abrirDetalhes(detail.application.id, true)
       return
     }
 
-    // Sucesso: fecha detalhes e recarrega a lista
+    // Sucesso: fecha detalhes, notifica e recarrega a lista
     fecharDetalhes()
+    alert(aprovar ? 'Estabelecimento APROVADO com sucesso!' : 'Estabelecimento REPROVADO com sucesso!')
     carregarLista(filter, 0, true)
   }
 
