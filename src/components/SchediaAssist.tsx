@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, type FormEvent } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { SparklesIcon, SendIcon } from './Icons'
+import { MessageCircleIcon, SendIcon } from './Icons'
 import {
   useSchediaAssist,
   type SchediaAssistBizData,
@@ -54,11 +54,11 @@ export default function SchediaAssist(props: SchediaAssistProps) {
   const initialGreeting = useMemo(() => {
     if (isBusinessMode && biz) {
       if (currentService?.name) {
-        return `Olá! Sou o **Schedia Assist** do **${biz.name}**.\n\nVi que você está interessado em **${currentService.name}**. Posso te explicar sobre o procedimento, cuidados, tempo estimado ou valores. Como posso te ajudar?`
+        return `Olá! Seja bem-vindo ao **${biz.name}**.\n\nVi que você está interessado em **${currentService.name}**. Posso te ajudar com detalhes do procedimento, duração ou valores. Como posso te orientar?`
       }
-      return `Olá! Sou o **Schedia Assist**, assistente virtual inteligente do **${biz.name}**.\n\nPosso te ajudar a esclarecer serviços, valores, regras de agendamento e informações sobre o atendimento. Como posso te ajudar hoje?`
+      return `Olá! Seja bem-vindo ao **${biz.name}**.\n\nPosso te ajudar a esclarecer serviços, valores, regras de agendamento e informações sobre o atendimento. Como posso te ajudar hoje?`
     }
-    return `Olá! Sou o **Schedia Assist**, o assistente virtual inteligente da plataforma Schedia.\n\nPosso te ajudar a encontrar estabelecimentos no Hub, entender como funcionam os agendamentos, gerenciar sua conta ou conhecer o **SchedLab 3D**. Como posso te ajudar?`
+    return `Olá! Seja bem-vindo à central de atendimento do Schedia.\n\nPosso te ajudar a encontrar estabelecimentos no Hub, entender como funcionam os agendamentos ou gerenciar sua conta. Como posso te ajudar?`
   }, [isBusinessMode, biz?.name, currentService?.name])
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -241,16 +241,15 @@ export default function SchediaAssist(props: SchediaAssistProps) {
           onClick={() => setIsOpen(!isOpen)}
           className={`schedia-assist-launcher${isOpen ? ' active' : ''}`}
           aria-expanded={isOpen}
-          aria-label={isOpen ? 'Fechar Schedia Assist' : 'Abrir assistente virtual Schedia Assist'}
-          title="Tirar dúvidas com o Schedia Assist"
+          aria-label={isOpen ? 'Fechar atendimento' : 'Abrir central de atendimento'}
+          title="Dúvidas e Atendimento"
         >
           <div className="schedia-assist-launcher-icon">
-            <SparklesIcon size={20} />
+            <MessageCircleIcon size={19} />
           </div>
           <span className="schedia-assist-launcher-text">
-            {isOpen ? 'Fechar Assistente' : 'Schedia Assist'}
+            {isOpen ? 'Fechar' : 'Ajuda'}
           </span>
-          <span className="schedia-assist-badge-ia">IA</span>
         </button>
       </div>
 
@@ -260,23 +259,26 @@ export default function SchediaAssist(props: SchediaAssistProps) {
           className="schedia-assist-window"
           role="dialog"
           aria-modal="false"
-          aria-label="Janela de conversa do Schedia Assist"
+          aria-label="Janela de atendimento"
         >
           {/* Header da Janela */}
           <div className="schedia-assist-header">
             <div className="schedia-assist-header-info">
               <div className="schedia-assist-header-avatar">
-                <SparklesIcon size={16} />
+                <MessageCircleIcon size={17} />
               </div>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
-                  <strong style={{ fontSize: '.95rem', color: '#ffffff' }}>Schedia Assist</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem' }}>
+                  <strong style={{ fontSize: '.92rem', color: '#ffffff' }}>
+                    {isBusinessMode && biz ? biz.name : 'Atendimento Schedia'}
+                  </strong>
                   <span className="schedia-assist-tag">
-                    {isBusinessMode ? 'IA do Local' : 'IA Oficial'}
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                    Online
                   </span>
                 </div>
-                <small style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '.75rem', display: 'block' }}>
-                  {isBusinessMode && biz ? biz.name : 'Guia inteligente da plataforma'}
+                <small style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '.74rem', display: 'block' }}>
+                  {isBusinessMode ? 'Atendimento ao cliente' : 'Dúvidas e suporte'}
                 </small>
               </div>
             </div>
@@ -313,7 +315,7 @@ export default function SchediaAssist(props: SchediaAssistProps) {
                 >
                   {!isUser && (
                     <div className="schedia-assist-msg-avatar">
-                      <SparklesIcon size={12} />
+                      <MessageCircleIcon size={12} />
                     </div>
                   )}
 
@@ -340,7 +342,7 @@ export default function SchediaAssist(props: SchediaAssistProps) {
             {loading && (
               <div className="schedia-assist-msg-row bot-row">
                 <div className="schedia-assist-msg-avatar">
-                  <SparklesIcon size={12} />
+                  <MessageCircleIcon size={12} />
                 </div>
                 <div className="schedia-assist-bubble bot-bubble typing-bubble">
                   <span className="typing-dot" />
@@ -401,8 +403,8 @@ export default function SchediaAssist(props: SchediaAssistProps) {
             </div>
             <div className="schedia-assist-disclaimer">
               {isBusinessMode && biz
-                ? `Schedia Assist • Respostas com base nos dados oficiais de ${biz.name}.`
-                : 'Schedia Assist • Assistente oficial de navegação e suporte do Schedia.'}
+                ? `Atendimento oficial de ${biz.name}`
+                : 'Central de ajuda e suporte Schedia'}
             </div>
           </form>
         </div>
