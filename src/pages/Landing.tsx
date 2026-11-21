@@ -43,7 +43,7 @@ export default function Landing() {
         >
           Plataforma de Gestão e Reservas
         </div>
-        <h1>Agendamentos inteligentes para microempreendedores</h1>
+        <h1>Agendamentos simples e eficientes para o seu negócio</h1>
         <p>
           O Schedia conecta clientes a serviços locais e organiza o dia a dia do seu negócio em uma plataforma moderna, rápida e confiável.
         </p>

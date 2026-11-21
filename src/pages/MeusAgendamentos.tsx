@@ -328,7 +328,7 @@ export default function MeusAgendamentos() {
         {/* Barra Superior de Navegação */}
         <div className="calendar-top-bar">
           <h2 className="calendar-month-title">
-            <CalendarIcon size={20} style={{ color: 'var(--primary)' }} />
+            <CalendarIcon size={18} style={{ color: 'var(--primary)', flexShrink: 0 }} />
             <span>{monthLabel}</span>
           </h2>
 
@@ -337,7 +337,7 @@ export default function MeusAgendamentos() {
               type="button"
               className="btn ghost sm"
               onClick={goToToday}
-              style={{ padding: '.3rem .75rem', fontSize: '.78rem', marginRight: '.25rem' }}
+              style={{ padding: '.25rem .55rem', fontSize: '.75rem', minHeight: '32px' }}
               title="Ir para o mês atual e selecionar hoje"
             >
               Hoje
@@ -418,25 +418,25 @@ export default function MeusAgendamentos() {
                 }${isSelected ? ' selected' : ''}${hasAppts ? ' has-appts' : ''}`}
                 aria-label={`${item.dayNum} de ${monthLabel}, ${dayAppts.length} agendamento(s)`}
               >
-                <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="calendar-day-cell-inner">
                   <span className="calendar-day-num">{item.dayNum}</span>
-                  {hasAppts && dayAppts.length > 1 && (
-                    <span className="calendar-dot-more">+{dayAppts.length}</span>
-                  )}
-                </div>
-
-                {/* Marcadores Coloridos */}
-                {hasAppts && (
-                  <div className="calendar-dots">
-                    {dayAppts.slice(0, 3).map((a, idx) => (
-                      <span
-                        key={idx}
-                        className={`calendar-dot ${a.status}`}
-                        title={`${a.service_name} (${STATUS_LABELS[a.status]?.label || a.status})`}
-                      />
-                    ))}
+                  <div className="calendar-dots-wrap">
+                    {hasAppts && (
+                      <div className="calendar-dots">
+                        {dayAppts.slice(0, 3).map((a, idx) => (
+                          <span
+                            key={idx}
+                            className={`calendar-dot ${a.status}`}
+                            title={`${a.service_name} (${STATUS_LABELS[a.status]?.label || a.status})`}
+                          />
+                        ))}
+                        {dayAppts.length > 3 && (
+                          <span className="calendar-dot-more">+{dayAppts.length - 3}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             )
           })}
