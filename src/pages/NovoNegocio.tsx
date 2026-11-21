@@ -79,6 +79,8 @@ export default function NovoNegocio() {
             onChange={url => setF({ ...f, logo_url: url })}
             label="Logotipo do negócio (opcional)"
             size={70}
+            bucket="business-logos"
+            pathPrefix="logos"
           />
 
           <label>

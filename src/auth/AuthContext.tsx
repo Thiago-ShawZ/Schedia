@@ -19,7 +19,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
+      const s = data.session
+      // Sanitização automática: remove data-URL base64 gigante do user_metadata para desinchar o JWT
+      const metaAvatar = s?.user?.user_metadata?.avatar_url
+      if (typeof metaAvatar === 'string' && metaAvatar.startsWith('data:')) {
+        supabase.auth.updateUser({ data: { avatar_url: null } }).then(() => {
+          supabase.auth.refreshSession()
+        })
+      }
+      setSession(s)
       setLoading(false)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) =>
