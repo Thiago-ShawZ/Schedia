@@ -12,10 +12,10 @@
 alter table public.businesses
   add column if not exists category_custom text;
 
--- 2) Categoria 'Outros'
-insert into public.categories (name)
-select 'Outros'
-where not exists (select 1 from public.categories where lower(name) = 'outros');
+-- 2) Categoria 'Outros' (com slug obrigatório)
+insert into public.categories (name, slug)
+select 'Outros', 'outros'
+where not exists (select 1 from public.categories where lower(name) = 'outros' or lower(slug) = 'outros');
 
 -- 3) Atualiza gatilho de publicação para aceitar categoria padrão ou personalizada
 create or replace function public.enforce_publish_rules() returns trigger
