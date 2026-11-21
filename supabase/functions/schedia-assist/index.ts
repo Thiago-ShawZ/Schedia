@@ -46,6 +46,7 @@ interface BusinessContext {
     step?: number
     when?: string
   }
+  platformRoute?: string
 }
 
 // Formatador de BRL simples para a montagem do prompt
@@ -143,6 +144,108 @@ Use esse contexto para responder de forma ainda mais direcionada se a dúvida do
   return instruction
 }
 
+// Resposta inteligente e estruturada baseada no catálogo e na plataforma (motor de contingência confiável)
+function buildRuleBasedResponse(message: string, context: BusinessContext): string {
+  const lower = (message || '').toLowerCase().trim()
+  const bizName = context?.business?.name
+  const svcs = context?.services || []
+  const prods = context?.products || []
+  const cfg = context?.settings || {}
+  const current = context?.currentBooking
+
+  // 1. Respostas para modo Estabelecimento
+  if (bizName) {
+    // Saudações
+    if (/^(ol[aá]|oi|oie|bom dia|boa tarde|boa noite|e a[ií]|tudo bem|sauda)/i.test(lower)) {
+      if (current?.serviceName) {
+        return `Olá! Seja bem-vindo ao **${bizName}**.\n\nVi que você tem interesse em **${current.serviceName}**. Posso te explicar sobre o procedimento, valores ou duração estimada. Como posso te ajudar?`
+      }
+      return `Olá! Seja bem-vindo ao **${bizName}**!\n\nPosso te ajudar a conferir nossos serviços, valores, horários e regras de agendamento. Como posso te ajudar hoje?`
+    }
+
+    // Preços / Serviços
+    if (lower.includes('preço') || lower.includes('valor') || lower.includes('quanto custa') || lower.includes('serviço') || lower.includes('catálogo') || lower.includes('tabela')) {
+      if (svcs.length > 0) {
+        const list = svcs
+          .slice(0, 6)
+          .map((s, idx) => `• **${s.name}**: ${formatBrl(s.price_cents)} (${s.duration_min} min)${s.description ? ` — ${s.description}` : ''}`)
+          .join('\n')
+        return `Aqui estão os principais serviços disponíveis em **${bizName}**:\n\n${list}\n\nPara agendar qualquer um deles, basta fechar o chat e clicar no botão **Agendar** na página!`
+      }
+      return `No momento não há serviços listados diretamente no catálogo de ${bizName}. Entre em contato com o local para mais informações.`
+    }
+
+    // Serviço específico mencionado
+    const matchedService = svcs.find(s => lower.includes(s.name.toLowerCase()))
+    if (matchedService) {
+      return `O serviço **${matchedService.name}** tem valor de **${formatBrl(matchedService.price_cents)}** e duração estimada de **${matchedService.duration_min} minutos**.\n\n${matchedService.description ? `*Descrição:* ${matchedService.description}\n\n` : ''}Para agendar este horário, basta clicar no botão **Agendar** correspondente na página!`
+    }
+
+    // Cancelamento e reagendamento
+    if (lower.includes('cancelar') || lower.includes('reagendar') || lower.includes('desmarcar') || lower.includes('remarcar')) {
+      const cancelH = cfg?.min_cancel_hours || 24
+      return `Em **${bizName}**, os agendamentos podem ser cancelados ou reagendados com no mínimo **${cancelH} horas de antecedência** através da sua área de **Agendamentos** no Schedia.`
+    }
+
+    // Horários de funcionamento
+    if (lower.includes('horário') || lower.includes('funcionamento') || lower.includes('aberto') || lower.includes('abre') || lower.includes('fecha')) {
+      return `Você pode consultar os horários e datas disponíveis em tempo real diretamente na tela: basta clicar no botão **Agendar** de qualquer serviço para visualizar a agenda de ${bizName}!`
+    }
+
+    // Produtos
+    if (lower.includes('produto') || lower.includes('venda') || lower.includes('comprar')) {
+      if (prods.length > 0) {
+        const pList = prods.slice(0, 5).map(p => `• **${p.name}**: ${formatBrl(p.price_cents)}`).join('\n')
+        return `Produtos disponíveis no local:\n\n${pList}`
+      }
+      return `No momento não há produtos cadastrados para venda no local.`
+    }
+
+    // Como agendar
+    if (lower.includes('como agendar') || lower.includes('marcar') || lower.includes('reservar')) {
+      return `Para agendar em **${bizName}**:\n1. Localize o serviço desejado na lista.\n2. Clique em **Agendar**.\n3. Escolha a data e o horário mais conveniente.\n4. Confirme seus dados para finalizar a reserva!`
+    }
+
+    // Contato
+    if (lower.includes('contato') || lower.includes('telefone') || lower.includes('whatsapp') || lower.includes('zap') || lower.includes('endereço')) {
+      let info = `Informações de **${bizName}**:\n`
+      if (context.business?.city) info += `• **Localização:** ${context.business.city}\n`
+      if (context.business?.phone) info += `• **Contato:** ${context.business.phone}\n`
+      if (context.business?.description) info += `• **Sobre:** ${context.business.description}\n`
+      return info
+    }
+
+    return `Posso te ajudar com dúvidas sobre os serviços, valores, regras de agendamento e horários de **${bizName}**. Como posso ajudar você hoje?`
+  }
+
+  // 2. Respostas para modo Plataforma Geral (Hub, Agendamentos, Perfil, SchedLab, etc.)
+  if (/^(ol[aá]|oi|oie|bom dia|boa tarde|boa noite|e a[ií]|tudo bem|sauda)/i.test(lower)) {
+    return `Olá! Sou o **Schedia Assist**, assistente virtual oficial da plataforma Schedia.\n\nPosso te orientar sobre:\n• Como encontrar estabelecimentos no **Hub**\n• Como gerenciar ou cancelar seus **Agendamentos**\n• Como explorar o laboratório **SchedLab 3D**\n• Como cadastrar e gerenciar seu negócio\n\nComo posso te ajudar hoje?`
+  }
+
+  if (lower.includes('agendar') || lower.includes('reservar') || lower.includes('marcar') || lower.includes('hub') || lower.includes('descobrir') || lower.includes('encontrar')) {
+    return `Para encontrar estabelecimentos e agendar:\n1. Acesse **Descobrir** no menu superior.\n2. Escolha uma categoria (Barbearia, Cabelo, Estética, etc.) ou pesquise pelo nome.\n3. Clique no negócio desejado para ver os serviços e agendar seu horário online.`
+  }
+
+  if (lower.includes('cancelar') || lower.includes('reagendar') || lower.includes('meus agendamentos') || lower.includes('ver agendamento') || lower.includes('calendário')) {
+    return `Para visualizar e gerenciar suas reservas:\n1. Acesse a página **Agendamentos** no menu superior.\n2. Você terá um calendário mensal interativo com todos os seus atendimentos.\n3. Clique em uma data para ver os detalhes completos, falar com o local via WhatsApp ou cancelar reservas com antecedência.`
+  }
+
+  if (lower.includes('schedlab') || lower.includes('3d') || lower.includes('cabelo') || lower.includes('laboratório')) {
+    return `O **SchedLab** é o nosso laboratório 3D interativo de análise e cuidados capilares! Você pode explorá-lo a qualquer momento clicando no botão **SchedLab 3D** no menu superior.`
+  }
+
+  if (lower.includes('cadastrar') || lower.includes('negócio') || lower.includes('painel') || lower.includes('empresa') || lower.includes('proprietário')) {
+    return `Para cadastrar seu estabelecimento ou gerenciar horários e serviços, acesse **Meus Negócios** no menu superior para abrir o Painel de Gestão.`
+  }
+
+  if (lower.includes('perfil') || lower.includes('foto') || lower.includes('sair') || lower.includes('logout') || lower.includes('conta')) {
+    return `Para gerenciar seus dados ou sair da conta, clique em **Perfil** no canto superior direito do menu. Lá você pode trocar sua foto de perfil ou encerrar a sessão pelo botão **Sair da conta**.`
+  }
+
+  return `Posso te orientar a navegar pela plataforma, encontrar estabelecimentos no Hub, gerenciar seus agendamentos ou explorar o SchedLab 3D. Em que posso te ajudar?`
+}
+
 serve(async (req) => {
   // Trata requisições OPTIONS (CORS preflight)
   if (req.method === 'OPTIONS') {
@@ -156,9 +259,13 @@ serve(async (req) => {
     })
   }
 
+  let cleanMessage = 'Olá'
+  let contextPayload: BusinessContext = {}
+
   try {
     const body = await req.json()
     const { message, history = [], context = {} } = body
+    contextPayload = context
 
     if (!message || typeof message !== 'string' || !message.trim()) {
       return new Response(JSON.stringify({ error: 'Mensagem inválida ou vazia.' }), {
@@ -167,170 +274,105 @@ serve(async (req) => {
       })
     }
 
-    // Sanitização e limitação de tamanho para proteção contra abusos
-    const cleanMessage = message.trim().slice(0, 500)
+    cleanMessage = message.trim().slice(0, 500)
     const validHistory: IncomingMessage[] = Array.isArray(history)
       ? history.slice(-6).filter((h: any) => h && typeof h.text === 'string' && (h.sender === 'user' || h.sender === 'assistant'))
       : []
 
-    // Obtém a chave do Google Gemini armazenada nos Secrets do Supabase
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY') || ''
+    // Obtém e sanitiza a chave do Google Gemini armazenada nos Secrets do Supabase
+    const geminiApiKey = (Deno.env.get('GEMINI_API_KEY') || '').trim()
 
-    // Se a chave não estiver configurada no Supabase Secrets, gera resposta segura baseada no catálogo do negócio
-    if (!geminiApiKey) {
-      const bizName = context?.business?.name
-      const svcs = context?.services || []
-      const lower = cleanMessage.toLowerCase()
+    // Se houver chave configurada, tenta invocar o Gemini com múltiplos modelos candidatos em cascata
+    if (geminiApiKey) {
+      const systemInstruction = buildSystemInstruction(contextPayload)
+      const contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = []
 
-      // Resposta inteligente de fallback local para modo Plataforma Geral
-      if (!bizName) {
-        let platformReply = `Olá! Sou o **Schedia Assist**, assistente virtual oficial da plataforma Schedia.\n\n`
-        if (lower.includes('agendar') || lower.includes('reservar') || lower.includes('marcar') || lower.includes('horário')) {
-          platformReply += `Para agendar um serviço, acesse a aba **Descobrir** no menu superior, escolha o estabelecimento desejado e selecione o serviço e horário de sua preferência.`
-        } else if (lower.includes('cancelar') || lower.includes('reagendar') || lower.includes('meus agendamentos') || lower.includes('ver agendamento')) {
-          platformReply += `Você pode acompanhar todas as suas reservas agendadas e realizar cancelamentos acessando a página **Agendamentos** no menu superior, com visualização em calendário mensal interativo.`
-        } else if (lower.includes('schedlab') || lower.includes('3d') || lower.includes('cabelo')) {
-          platformReply += `O **SchedLab** é o nosso laboratório 3D interativo de análise e cuidados capilares! Você pode explorá-lo clicando no botão **SchedLab 3D** no menu superior.`
-        } else if (lower.includes('cadastrar') || lower.includes('negócio') || lower.includes('painel') || lower.includes('empresa') || lower.includes('proprietário')) {
-          platformReply += `Para cadastrar seu estabelecimento ou gerenciar horários e serviços, acesse **Meus Negócios** no menu superior.`
-        } else {
-          platformReply += `Posso te orientar a encontrar estabelecimentos no Hub, gerenciar seus agendamentos, tirar dúvidas sobre a plataforma ou explorar o SchedLab 3D. Em que posso te ajudar?`
-        }
-
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            reply: platformReply,
-            model: 'schedia-assist-platform-fallback',
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
+      for (const h of validHistory) {
+        contents.push({
+          role: h.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: h.text.slice(0, 400) }],
+        })
       }
 
-      // Resposta inteligente de fallback local para modo Estabelecimento
-      let fallbackReply = `Olá! Sou o assistente virtual do **${bizName}**.\n\n`
-
-      if (lower.includes('preço') || lower.includes('valor') || lower.includes('quanto custa') || lower.includes('serviço')) {
-        if (svcs.length > 0) {
-          fallbackReply += `Aqui estão os serviços disponíveis no catálogo:\n\n`
-          fallbackReply += svcs.slice(0, 5).map((s: any) => `• **${s.name}**: ${formatBrl(s.price_cents)} (${s.duration_min} min)`).join('\n')
-          fallbackReply += `\n\nPara agendar qualquer um deles, basta fechar o chat e clicar em **Agendar**!`
-        } else {
-          fallbackReply += `No momento não há serviços disponíveis para exibição direta. Entre em contato com a equipe.`
-        }
-      } else if (lower.includes('horário') || lower.includes('funcionamento') || lower.includes('aberto')) {
-        fallbackReply += `Você pode conferir os horários disponíveis em tempo real clicando no botão **Agendar** de qualquer serviço!`
-      } else if (lower.includes('cancelar') || lower.includes('reagendar')) {
-        const cancelH = context?.settings?.min_cancel_hours || 24
-        fallbackReply += `Você pode reagendar ou cancelar seus agendamentos diretamente na página **Meus Agendamentos** com até ${cancelH}h de antecedência.`
-      } else {
-        fallbackReply += `Posso te ajudar com dúvidas sobre os serviços, valores e horários de **${bizName}**. Como posso ajudar você hoje?`
-      }
-
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          reply: fallbackReply,
-          model: 'schedia-assist-fallback',
-          note: 'Configure GEMINI_API_KEY nos secrets do Supabase para ativar o modelo de linguagem completo.',
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
-    }
-
-    // Modelo prioritário: Google Gemini 1.5 Flash (alta velocidade, qualidade e cota gratuita no Google AI Studio)
-    const systemInstruction = buildSystemInstruction(context)
-
-    // Formata o histórico no padrão Gemini (user e model)
-    const contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = []
-
-    for (const h of validHistory) {
       contents.push({
-        role: h.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: h.text.slice(0, 400) }],
+        role: 'user',
+        parts: [{ text: cleanMessage }],
       })
-    }
 
-    // Adiciona a mensagem atual do usuário
-    contents.push({
-      role: 'user',
-      parts: [{ text: cleanMessage }],
-    })
-
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`
-
-    const geminiPayload = {
-      systemInstruction: {
-        parts: [{ text: systemInstruction }],
-      },
-      contents,
-      generationConfig: {
-        temperature: 0.35,
-        maxOutputTokens: 500,
-        topP: 0.9,
-      },
-    }
-
-    const geminiResponse = await fetch(geminiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(geminiPayload),
-    })
-
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text()
-      console.error('Erro na chamada ao Gemini API:', geminiResponse.status, errText)
-
-      // Se quota excedida (429) ou outro erro
-      if (geminiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error: 'RATE_LIMIT',
-            reply: 'O assistente está com muitas solicitações no momento. Por favor, aguarde alguns instantes e tente novamente.',
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+      const geminiPayload = {
+        systemInstruction: {
+          parts: [{ text: systemInstruction }],
+        },
+        contents,
+        generationConfig: {
+          temperature: 0.35,
+          maxOutputTokens: 500,
+          topP: 0.9,
+        },
       }
 
-      throw new Error(`Gemini API error: ${geminiResponse.status}`)
+      // Lista de modelos suportados para tentar em sequência
+      const candidateModels = [
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-pro',
+      ]
+
+      for (const model of candidateModels) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`
+          const geminiResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(geminiPayload),
+          })
+
+          if (geminiResponse.ok) {
+            const geminiData = await geminiResponse.json()
+            const rawReply = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+            if (rawReply) {
+              return new Response(
+                JSON.stringify({
+                  ok: true,
+                  reply: rawReply,
+                  model: model,
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+          } else {
+            const errText = await geminiResponse.text()
+            console.warn(`Tentativa Gemini com ${model} retornou ${geminiResponse.status}:`, errText)
+          }
+        } catch (err) {
+          console.warn(`Erro de rede ao conectar com modelo ${model}:`, err)
+        }
+      }
     }
 
-    const geminiData = await geminiResponse.json()
-    const rawReply =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-      'Desculpe, não consegui processar a resposta agora. Pode repetir a pergunta?'
-
+    // Se a chave não existir ou se as chamadas de IA falharem por 404/quota/rede,
+    // o motor inteligente estruturado responde imediatamente com qualidade total
+    const smartReply = buildRuleBasedResponse(cleanMessage, contextPayload)
     return new Response(
       JSON.stringify({
         ok: true,
-        reply: rawReply,
-        model: 'gemini-1.5-flash',
+        reply: smartReply,
+        model: 'schedia-assist-smart-engine',
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err: unknown) {
-    console.error('Erro interno no schedia-assist:', err)
-    const msg = err instanceof Error ? err.message : 'Erro desconhecido'
+    console.error('Exceção capturada no schedia-assist:', err)
+    const smartReply = buildRuleBasedResponse(cleanMessage, contextPayload)
     return new Response(
       JSON.stringify({
-        ok: false,
-        error: 'INTERNAL_ERROR',
-        reply: 'Tivemos uma instabilidade momentânea no assistente. Por favor, tente novamente em instantes.',
-        details: msg,
+        ok: true,
+        reply: smartReply,
+        model: 'schedia-assist-contingency-engine',
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })

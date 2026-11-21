@@ -171,19 +171,30 @@ export default function SchediaAssist(props: SchediaAssistProps) {
         text: m.text,
       }))
 
-      const { data, error } = await supabase.functions.invoke('schedia-assist', {
-        body: {
-          message: query,
-          history: chatHistory,
-          context: contextPayload,
-        },
-      })
+      let botReply = ''
 
-      if (error) {
-        throw error
+      try {
+        const { data, error } = await supabase.functions.invoke('schedia-assist', {
+          body: {
+            message: query,
+            history: chatHistory,
+            context: contextPayload,
+          },
+        })
+
+        // Se a Edge Function responder com sucesso e conteúdo válido
+        if (!error && data?.ok && data?.reply && !data?.reply.includes('instabilidade momentânea')) {
+          botReply = data.reply
+        } else if (!error && data?.reply && !data?.error && !data?.details?.includes('error')) {
+          botReply = data.reply
+        } else {
+          // Contingência inteligente instantânea no cliente
+          botReply = getLocalSmartResponse(query, biz, services, products, settings, currentService)
+        }
+      } catch (invokeErr) {
+        console.warn('Conexão externa do Schedia Assist indisponível, usando motor inteligente local:', invokeErr)
+        botReply = getLocalSmartResponse(query, biz, services, products, settings, currentService)
       }
-
-      const botReply = data?.reply || 'Não consegui obter uma resposta no momento. Por favor, tente novamente.'
 
       setMessages(prev => [
         ...prev,
@@ -194,13 +205,14 @@ export default function SchediaAssist(props: SchediaAssistProps) {
         },
       ])
     } catch {
+      // Garantia absoluta de resposta: se qualquer falha inesperada ocorrer
+      const fallbackReply = getLocalSmartResponse(query, biz, services, products, settings, currentService)
       setMessages(prev => [
         ...prev,
         {
           id: crypto.randomUUID(),
           sender: 'assistant',
-          text: 'Tivemos uma instabilidade momentânea na conexão com o assistente. Por favor, tente novamente em instantes.',
-          isError: true,
+          text: fallbackReply,
         },
       ])
     } finally {
@@ -416,4 +428,124 @@ function renderFormattedMessage(text: string) {
       </span>
     )
   })
+}
+
+// Motor inteligente estruturado de contingência local para resposta instantânea
+function getLocalSmartResponse(
+  query: string,
+  biz: SchediaAssistBizData | null,
+  services: SchediaAssistServiceData[],
+  products: SchediaAssistProductData[],
+  settings: SchediaAssistSettingsData | null,
+  currentService: SchediaAssistBookingData | null
+): string {
+  const q = (query || '').toLowerCase().trim()
+
+  // 1. MODO ESTABELECIMENTO
+  if (biz?.name) {
+    const bizName = biz.name
+
+    // Saudações
+    if (/^(ol[aá]|oi|oie|bom dia|boa tarde|boa noite|e a[ií]|tudo bem|sauda[çc][oõ]es)/i.test(q)) {
+      if (currentService?.name) {
+        return `Olá! Seja bem-vindo ao **${bizName}**.\n\nVi que você tem interesse em **${currentService.name}**. Posso te explicar sobre valores, duração ou cuidados pré e pós-procedimento. Como posso ajudar?`
+      }
+      return `Olá! Seja bem-vindo ao atendimento do **${bizName}**!\n\nPosso te ajudar a conhecer nossos serviços, conferir valores e durações, entender as regras de agendamento ou tirar dúvidas sobre o atendimento. Como posso te ajudar hoje?`
+    }
+
+    // Consulta de preços ou catálogo de serviços
+    if (q.includes('preço') || q.includes('valor') || q.includes('quanto custa') || q.includes('serviço') || q.includes('catálogo') || q.includes('tabela')) {
+      if (services.length > 0) {
+        const list = services
+          .slice(0, 6)
+          .map(s => `• **${s.name}**: ${(s.price_cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} (${s.duration_min} min)${s.description ? ` — ${s.description}` : ''}`)
+          .join('\n')
+
+        return `Aqui estão os principais serviços disponíveis em **${bizName}**:\n\n${list}\n\nPara agendar qualquer um deles, basta fechar o chat e clicar no botão **Agendar** correspondente!`
+      }
+      return `No momento não há serviços com valores listados diretamente no catálogo. Para agendar ou consultar disponibilidade, fale com a equipe do estabelecimento.`
+    }
+
+    // Pergunta sobre serviço específico
+    const matchedService = services.find(s => q.includes(s.name.toLowerCase()))
+    if (matchedService) {
+      const priceStr = (matchedService.price_cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      return `O serviço **${matchedService.name}** tem valor de **${priceStr}** e duração estimada de **${matchedService.duration_min} minutos**.\n\n${matchedService.description ? `*Descrição:* ${matchedService.description}\n\n` : ''}Para reservar seu horário, basta clicar no botão **Agendar** desse serviço na página!`
+    }
+
+    // Cancelamento / reagendamento
+    if (q.includes('cancelar') || q.includes('reagendar') || q.includes('desmarcar') || q.includes('remarcar')) {
+      const minHours = settings?.min_cancel_hours || 24
+      return `Você pode cancelar ou reagendar seus atendimentos diretamente pela aba **Agendamentos** no menu superior.\n\n**Atenção:** Em **${bizName}**, os cancelamentos ou alterações devem ser feitos com no mínimo **${minHours} horas de antecedência**.`
+    }
+
+    // Horários / funcionamento
+    if (q.includes('horário') || q.includes('funcionamento') || q.includes('abre') || q.includes('fecha') || q.includes('aberto') || q.includes('dias')) {
+      return `Os horários e dias de atendimento do **${bizName}** podem ser consultados em tempo real na tela de agendamento: basta clicar em **Agendar** em qualquer serviço para visualizar as datas e horários livres no calendário!`
+    }
+
+    // Produtos
+    if (q.includes('produto') || q.includes('venda') || q.includes('comprar')) {
+      if (products.length > 0) {
+        const pList = products
+          .slice(0, 5)
+          .map(p => `• **${p.name}**: ${(p.price_cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`)
+          .join('\n')
+        return `Produtos disponíveis para compra no local:\n\n${pList}`
+      }
+      return `Não há produtos cadastrados para venda no momento.`
+    }
+
+    // Como agendar
+    if (q.includes('como agendar') || q.includes('quero agendar') || q.includes('marcar') || q.includes('reserva')) {
+      return `Para realizar seu agendamento em **${bizName}**:\n1. Escolha o serviço desejado na lista da página.\n2. Clique no botão **Agendar**.\n3. Selecione a melhor data e horário disponíveis.\n4. Confirme seus dados e pronto! Sua reserva estará garantida.`
+    }
+
+    // Contato
+    if (q.includes('telefone') || q.includes('contato') || q.includes('whatsapp') || q.includes('zap') || q.includes('endereço') || q.includes('onde')) {
+      let resp = `Informações de contato e localização de **${bizName}**:\n`
+      if (biz.city) resp += `• **Localização:** ${biz.city}\n`
+      if (biz.phone) resp += `• **Contato:** ${biz.phone}\n`
+      if (biz.description) resp += `• **Sobre:** ${biz.description}\n`
+      return resp
+    }
+
+    // Resposta padrão no modo estabelecimento
+    return `Estou à disposição para tirar qualquer dúvida sobre **${bizName}**! Você pode me perguntar sobre preços, duração dos procedimentos, horários, como agendar ou políticas de cancelamento.`
+  }
+
+  // 2. MODO PLATAFORMA GERAL (Hub, Meus Agendamentos, Perfil, etc.)
+
+  // Saudações gerais
+  if (/^(ol[aá]|oi|oie|bom dia|boa tarde|boa noite|e a[ií]|tudo bem|sauda[çc][oõ]es)/i.test(q)) {
+    return `Olá! Sou o **Schedia Assist**, o assistente virtual oficial da plataforma Schedia.\n\nPosso te orientar sobre:\n• Como encontrar estabelecimentos e serviços no **Hub**\n• Como consultar ou cancelar seus **Agendamentos**\n• Como explorar o laboratório **SchedLab 3D**\n• Como cadastrar e gerenciar seu negócio\n\nComo posso te ajudar hoje?`
+  }
+
+  // Hub / Descobrir
+  if (q.includes('hub') || q.includes('descobrir') || q.includes('encontrar') || q.includes('buscar') || q.includes('estabelecimentos') || q.includes('salão') || q.includes('barbearia')) {
+    return `Para encontrar estabelecimentos no Schedia:\n1. Acesse **Descobrir** no menu superior.\n2. Você pode filtrar por categoria (Barbearia, Cabelo, Estética e pele, Maquiagem, Unhas) ou pesquisar por nome.\n3. Clique no estabelecimento desejado para ver os serviços e agendar seu horário online em poucos segundos!`
+  }
+
+  // Agendamentos / Cancelamentos
+  if (q.includes('agendamento') || q.includes('cancelar') || q.includes('reagendar') || q.includes('minhas reservas') || q.includes('histórico') || q.includes('marcado') || q.includes('calendário')) {
+    return `Para visualizar ou gerenciar suas reservas:\n1. Clique em **Agendamentos** no menu superior.\n2. Você verá um calendário mensal interativo com todos os seus atendimentos futuros e anteriores.\n3. Clicando em qualquer dia com agendamento, abre-se uma tela suspensa com todos os detalhes (horário, serviço, profissional, valor e botão para falar diretamente com o local via WhatsApp).\n4. Se precisar cancelar, use a opção correspondente respeitando o prazo mínimo do estabelecimento.`
+  }
+
+  // SchedLab 3D
+  if (q.includes('schedlab') || q.includes('3d') || q.includes('laboratório') || q.includes('cabelo')) {
+    return `O **SchedLab** é o nosso laboratório 3D inovador de simulação e cuidados capilares!\n\nVocê pode acessá-lo a qualquer momento clicando no botão **SchedLab 3D** no menu superior. Lá você experimenta uma visão tridimensional interativa de tratamentos e cuidados.`
+  }
+
+  // Cadastrar negócio / Painel
+  if (q.includes('cadastrar') || q.includes('meu negócio') || q.includes('painel') || q.includes('empresa') || q.includes('proprietário') || q.includes('dono')) {
+    return `Se você é proprietário de um salão, barbearia ou clínica:\n1. Clique em **Meus Negócios** no menu superior.\n2. Escolha **Cadastrar novo negócio** se ainda não tiver um cadastrado.\n3. Após a aprovação, você terá acesso ao Painel de Gestão completo com controle de agenda, catálogo de serviços, produtos e bloqueios de expediente.`
+  }
+
+  // Perfil / Conta
+  if (q.includes('perfil') || q.includes('foto') || q.includes('sair') || q.includes('logout') || q.includes('conta')) {
+    return `Para gerenciar seus dados ou encerrar a sessão:\n• Acesse **Perfil** no canto superior direito do menu.\n• Lá você pode alterar sua foto de perfil, verificar seu e-mail cadastrado ou clicar no botão **Sair da conta** para fazer logout com segurança.`
+  }
+
+  // Resposta padrão de plataforma
+  return `Posso te orientar a utilizar todos os recursos do Schedia! Você pode me perguntar como agendar no Hub, como funciona o calendário de agendamentos, o que é o SchedLab 3D ou como cadastrar seu estabelecimento.`
 }
