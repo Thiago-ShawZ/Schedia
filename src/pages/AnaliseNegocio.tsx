@@ -330,88 +330,49 @@ export default function AnaliseNegocio() {
           )
         }
 
-        // Path padronizado sem barras iniciais
+        // Path padronizado sem barras iniciais: user_id/business_id/timestamp-num-rand.jpg
         const randId = Math.random().toString(36).slice(2, 7)
         const path = `${currentUserId}/${id}/${Date.now()}-${numFoto}-${randId}.jpg`
 
-        let uploadSucesso = false
-        let directErroMsg = ''
+        // Upload direto autenticado (sem upsert: caminhos são únicos e a policy é estritamente INSERT)
+        const { error: directErr } = await supabase.storage
+          .from('business-applications')
+          .upload(path, item.file, {
+            contentType: 'image/jpeg',
+          })
 
-        // Tentativa 1: Upload direto autenticado (método padrão do Supabase)
-        try {
-          const { error: directErr } = await supabase.storage
-            .from('business-applications')
-            .upload(path, item.file, {
-              contentType: 'image/jpeg',
-              upsert: true,
-            })
+        if (directErr) {
+          console.error(`Falha no upload direto da foto ${numFoto}:`, directErr)
+          const rawMsg = directErr.message || ''
+          const status = (directErr as any)?.status || (directErr as any)?.statusCode
 
-          if (!directErr) {
-            uploadSucesso = true
-          } else {
-            directErroMsg = directErr.message || 'Erro no upload direto'
-            console.warn(`Upload direto da foto ${numFoto} falhou:`, directErr)
-          }
-        } catch (e: any) {
-          directErroMsg = e?.message || 'Exceção no upload direto'
-        }
-
-        // Tentativa 2: Fallback via Signed Upload URL
-        if (!uploadSucesso) {
-          try {
-            const { data: signedData, error: signedErr } = await supabase.storage
-              .from('business-applications')
-              .createSignedUploadUrl(path)
-
-            if (!signedErr && signedData?.token) {
-              const { error: uploadSignedErr } = await supabase.storage
-                .from('business-applications')
-                .uploadToSignedUrl(path, signedData.token, item.file, {
-                  contentType: 'image/jpeg',
-                })
-
-              if (!uploadSignedErr) {
-                uploadSucesso = true
-              } else {
-                throw new Error(`uploadToSignedUrl: ${uploadSignedErr.message}`)
-              }
-            } else if (signedErr) {
-              throw signedErr
-            }
-          } catch (signedEx: any) {
-            console.error(`Fallback de URL assinada também falhou para foto ${numFoto}:`, signedEx)
-            const rawMsg = signedEx?.message || directErroMsg || ''
-            const status = signedEx?.status || signedEx?.statusCode
-
-            if (/bucket not found|not found|not_found/i.test(rawMsg) || status === 404 || status === '404') {
-              throw new Error(
-                `O bucket "business-applications" não foi encontrado no Supabase Storage. Verifique se o bucket foi criado.`
-              )
-            }
-
-            if (/payload too large|entity too large|file size/i.test(rawMsg) || status === 413) {
-              throw new Error(
-                `A foto ${numFoto} ultrapassa o limite de tamanho configurado no bucket (máximo de 2 MB).`
-              )
-            }
-
-            if (/mime|unsupported|media type/i.test(rawMsg) || status === 415) {
-              throw new Error(
-                `O formato da foto ${numFoto} não é aceito pelo bucket. Apenas imagens JPEG, PNG ou WebP são permitidas.`
-              )
-            }
-
-            // HTTP 400 / 403 no Supabase Storage normalmente é violação de RLS
-            if (status === 400 || status === '400' || status === 403 || /400 error|row-level security|permission denied|unauthorized/i.test(rawMsg)) {
-              throw new Error(
-                `Falha de permissão (RLS) ao enviar a foto ${numFoto}. Execute as policies de INSERT/SELECT simplificadas para o bucket "business-applications" no SQL Editor do Supabase.`
-              )
-            }
-
+          if (/bucket not found|not found|not_found|no such bucket/i.test(rawMsg) || status === 404 || status === '404') {
             throw new Error(
-              `Falha ao enviar a foto ${numFoto}: ${rawMsg || 'erro desconhecido'} (HTTP ${status || '400'}).`
+              `O bucket "business-applications" não foi encontrado no Supabase Storage. Verifique se o bucket foi criado.`
             )
           }
+
+          if (/payload too large|entity too large|file size/i.test(rawMsg) || status === 413) {
+            throw new Error(
+              `A foto ${numFoto} ultrapassa o limite de tamanho configurado no bucket (máximo de 2 MB).`
+            )
+          }
+
+          if (/mime|unsupported|media type/i.test(rawMsg) || status === 415) {
+            throw new Error(
+              `O formato da foto ${numFoto} não é aceito pelo bucket. Apenas imagens JPEG, PNG ou WebP são permitidas.`
+            )
+          }
+
+          if (/row-level security|permission denied|unauthorized|accessdenied/i.test(rawMsg) || status === 403 || status === '403') {
+            throw new Error(
+              `Falha de permissão (RLS) ao enviar a foto ${numFoto}. Verifique se você está autenticado como o proprietário deste negócio.`
+            )
+          }
+
+          throw new Error(
+            `Falha ao enviar a foto ${numFoto}: ${rawMsg || 'erro na transmissão'} (HTTP ${status || '400'}).`
+          )
         }
 
         caminhosStorage.push(path)
