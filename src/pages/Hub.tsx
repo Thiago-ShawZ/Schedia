@@ -10,6 +10,7 @@ type Biz = {
   description: string | null
   city: string | null
   logo_url?: string | null
+  category_custom?: string | null
   categories: { name: string } | null
 }
 
@@ -25,7 +26,7 @@ export default function Hub() {
       setLoading(true)
       let query = supabase
         .from('businesses')
-        .select('id,slug,name,description,city,logo_url,categories(name)')
+        .select('id,slug,name,description,city,logo_url,category_custom,categories(name)')
         .eq('is_published', true)
         .order('name')
         .limit(30)
@@ -150,7 +151,7 @@ export default function Hub() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.75rem' }}>
                   <span className="badge badge-info">
-                    {b.categories?.name ?? 'Geral'}
+                    {b.category_custom || b.categories?.name || 'Geral'}
                   </span>
                   {b.city && (
                     <small style={{ color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.78rem' }}>

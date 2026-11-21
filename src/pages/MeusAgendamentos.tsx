@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { brl, buildWhatsAppLink } from '../lib/format'
@@ -11,6 +12,8 @@ import {
   BuildingIcon,
   DownloadIcon,
   WhatsAppIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from '../components/Icons'
 import { buildGoogleCalendarUrl, downloadIcsFile } from '../lib/calendar'
 
@@ -236,7 +239,8 @@ export default function MeusAgendamentos() {
   }, [viewDate])
 
   const monthLabel = useMemo(() => {
-    return viewDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+    const raw = viewDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+    return raw.charAt(0).toUpperCase() + raw.slice(1)
   }, [viewDate])
 
   // Agendamentos da data selecionada
@@ -250,13 +254,14 @@ export default function MeusAgendamentos() {
     const [y, m, d] = selectedDate.split('-').map(Number)
     const dateObj = new Date(y, m - 1, d)
     const isToday = selectedDate === todayKey
-    const formatted = dateObj.toLocaleDateString('pt-BR', {
+    const raw = dateObj.toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
     })
-    return isToday ? `Hoje, ${formatted}` : formatted
+    const cap = raw.charAt(0).toUpperCase() + raw.slice(1)
+    return isToday ? `Hoje, ${cap}` : cap
   }, [selectedDate, todayKey])
 
   const quando = (a: A) =>
@@ -344,7 +349,7 @@ export default function MeusAgendamentos() {
               aria-label="Mês anterior"
               title="Mês anterior"
             >
-              ◀
+              <ChevronLeftIcon size={16} />
             </button>
             <button
               type="button"
@@ -353,7 +358,7 @@ export default function MeusAgendamentos() {
               aria-label="Próximo mês"
               title="Próximo mês"
             >
-              ▶
+              <ChevronRightIcon size={16} />
             </button>
           </div>
         </div>
@@ -439,7 +444,7 @@ export default function MeusAgendamentos() {
       </section>
 
       {/* ─── TELA SUSPENSA (MODAL) COM OS DETALHES DO AGENDAMENTO ─── */}
-      {isDetailsOpen && (
+      {isDetailsOpen && createPortal(
         <div
           className="modal-backdrop"
           onClick={() => setIsDetailsOpen(false)}
@@ -498,7 +503,7 @@ export default function MeusAgendamentos() {
                   <p style={{ maxWidth: '380px', margin: '.25rem auto 1.25rem', fontSize: '.86rem', color: 'var(--muted)' }}>
                     Você não possui horários marcados para esta data. Deseja agendar um novo serviço?
                   </p>
-                  <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                     <Link className="btn sm" to="/hub" onClick={() => setIsDetailsOpen(false)}>
                       Explorar negócios no Hub
                     </Link>
@@ -759,7 +764,8 @@ export default function MeusAgendamentos() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── HISTÓRICO COMPLETO EM LISTA (PRESERVAÇÃO INTEGRAL) ─── */}

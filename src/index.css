@@ -478,6 +478,10 @@ main {
   pointer-events: none;
 }
 
+.notif-mobile-backdrop {
+  display: none;
+}
+
 .notif-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -1976,8 +1980,56 @@ textarea {
   input,
   textarea,
   select {
-    font-size: 16px;
-    /* Evita auto-zoom do Safari no iOS ao focar campos */
+    font-size: 16px !important;
+    min-height: 44px;
+    /* Evita auto-zoom do Safari no iOS ao focar campos e garante área de toque >= 44px */
+  }
+
+  .card,
+  .form {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .notif-dropdown {
+    position: fixed;
+    top: calc(var(--hh) + 8px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - var(--hh) - 32px);
+    z-index: 1000;
+  }
+
+  .notif-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  .notif-item-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .calendar-day-cell {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .calendar-day-cell.selected {
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+
+  main {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
   }
 }
 
@@ -2141,7 +2193,9 @@ textarea {
   font-size: 1.2rem;
   font-weight: 800;
   color: var(--fg);
-  text-transform: capitalize;
+  text-transform: none;
+  appearance: none;
+  -webkit-appearance: none;
   display: flex;
   align-items: center;
   gap: .5rem;
@@ -2375,7 +2429,7 @@ textarea {
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--fg);
-  text-transform: capitalize;
+  text-transform: none;
   display: flex;
   align-items: center;
   gap: .5rem;

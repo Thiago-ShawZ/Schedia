@@ -9,6 +9,7 @@ export default function NovoNegocio() {
   const nav = useNavigate()
   const [cats, setCats] = useState<{ id: number; name: string }[]>([])
   const [f, setF] = useState({ name: '', slug: '', category_id: '', city: '', phone: '', description: '', logo_url: '' })
+  const [categoryCustom, setCategoryCustom] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -24,8 +25,18 @@ export default function NovoNegocio() {
   async function submit(e: FormEvent) {
     e.preventDefault()
     setMsg('')
+
+    const isOther = f.category_id === 'other'
+    const customTrim = categoryCustom.trim()
+
+    if (isOther && (customTrim.length < 2 || customTrim.length > 80)) {
+      return setMsg('Descreva o segmento da sua empresa com 2 a 80 caracteres.')
+    }
+
     setBusy(true)
     const id = crypto.randomUUID()
+    const catOutrosId = cats.find(c => c.name.toLowerCase() === 'outros')?.id ?? null
+
     const { error } = await supabase.from('businesses').insert({
       id,
       name: f.name.trim(),
@@ -33,7 +44,8 @@ export default function NovoNegocio() {
       city: f.city.trim() || null,
       phone: f.phone.trim() || null,
       description: f.description.trim() || null,
-      category_id: f.category_id ? Number(f.category_id) : null,
+      category_id: isOther ? catOutrosId : (f.category_id ? Number(f.category_id) : null),
+      category_custom: isOther ? customTrim : null,
       logo_url: f.logo_url.trim() || null,
     })
     setBusy(false)
@@ -119,17 +131,41 @@ export default function NovoNegocio() {
             Categoria principal
             <select
               value={f.category_id}
-              onChange={e => setF({ ...f, category_id: e.target.value })}
+              onChange={e => {
+                const val = e.target.value
+                setF({ ...f, category_id: val })
+                if (val !== 'other') {
+                  setCategoryCustom('')
+                }
+              }}
               required
             >
               <option value="">Selecione uma categoria...</option>
-              {cats.map(c => (
+              {cats.filter(c => c.name.toLowerCase() !== 'outros').map(c => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
+              <option value="other">Outros (outro segmento)</option>
             </select>
           </label>
+
+          {f.category_id === 'other' && (
+            <label>
+              Descreva o segmento da sua empresa
+              <input
+                required
+                minLength={2}
+                maxLength={80}
+                value={categoryCustom}
+                onChange={e => setCategoryCustom(e.target.value)}
+                placeholder="Ex.: Pet shop, Clínica de fisioterapia, Estúdio de tatuagem"
+              />
+              <small style={{ color: 'var(--muted)', fontSize: '.78rem' }}>
+                Informe o ramo de atividade específico da sua empresa (2 a 80 caracteres).
+              </small>
+            </label>
+          )}
 
           <label>
             Cidade / Estado
