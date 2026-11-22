@@ -241,14 +241,14 @@ export default function SchediaAssist(props: SchediaAssistProps) {
           onClick={() => setIsOpen(!isOpen)}
           className={`schedia-assist-launcher${isOpen ? ' active' : ''}`}
           aria-expanded={isOpen}
-          aria-label={isOpen ? 'Fechar atendimento' : 'Abrir central de atendimento'}
-          title="Dúvidas e Atendimento"
+          aria-label={isOpen ? 'Fechar SchedIA' : 'Abrir SchedIA'}
+          title="SchedIA"
         >
           <div className="schedia-assist-launcher-icon">
             <MessageCircleIcon size={19} />
           </div>
           <span className="schedia-assist-launcher-text">
-            {isOpen ? 'Fechar' : 'Ajuda'}
+            {isOpen ? 'Fechar' : 'SchedIA'}
           </span>
         </button>
       </div>
@@ -270,7 +270,7 @@ export default function SchediaAssist(props: SchediaAssistProps) {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem' }}>
                   <strong style={{ fontSize: '.92rem', color: '#ffffff' }}>
-                    {isBusinessMode && biz ? biz.name : 'Atendimento Schedia'}
+                    {isBusinessMode && biz ? biz.name : 'SchedIA'}
                   </strong>
                   <span className="schedia-assist-tag">
                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
@@ -278,7 +278,7 @@ export default function SchediaAssist(props: SchediaAssistProps) {
                   </span>
                 </div>
                 <small style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '.74rem', display: 'block' }}>
-                  {isBusinessMode ? 'Atendimento ao cliente' : 'Dúvidas e suporte'}
+                  {isBusinessMode ? 'Atendimento ao cliente' : 'SchedIA — Assistente da plataforma'}
                 </small>
               </div>
             </div>
@@ -404,7 +404,7 @@ export default function SchediaAssist(props: SchediaAssistProps) {
             <div className="schedia-assist-disclaimer">
               {isBusinessMode && biz
                 ? `Atendimento oficial de ${biz.name}`
-                : 'Central de ajuda e suporte Schedia'}
+                : 'SchedIA — Assistente oficial da plataforma'}
             </div>
           </form>
         </div>
@@ -520,7 +520,7 @@ function getLocalSmartResponse(
 
   // Saudações gerais
   if (/^(ol[aá]|oi|oie|bom dia|boa tarde|boa noite|e a[ií]|tudo bem|sauda[çc][oõ]es)/i.test(q)) {
-    return `Olá! Sou o **Schedia Assist**, o assistente virtual oficial da plataforma Schedia.\n\nPosso te orientar sobre:\n• Como encontrar estabelecimentos e serviços no **Hub**\n• Como consultar ou cancelar seus **Agendamentos**\n• Como explorar o laboratório **SchedLab 3D**\n• Como cadastrar e gerenciar seu negócio\n\nComo posso te ajudar hoje?`
+    return `Olá! Sou a **SchedIA**, assistente oficial da plataforma Schedia.\n\nPosso te orientar sobre:\n• Como encontrar estabelecimentos e serviços no **Hub**\n• Como consultar ou cancelar seus **Agendamentos**\n• Como explorar o laboratório **SchedLab 3D**\n• Como cadastrar e gerenciar seu negócio\n\nComo posso te ajudar hoje?`
   }
 
   // Hub / Descobrir
